@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="Z:/Libraries/JTS-1.12/lib/jts-1.12.jar" sourcepath="D:/Libraries/JTS-1.10/src"/>
+	<classpathentry kind="lib" path="Z:/Libraries/colt/lib/colt.jar"/>
+	<classpathentry kind="lib" path="Z:/Libraries/Flanagan/flanagan.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jdk1.7.0_03"/>
+	<classpathentry kind="lib" path="Z:/Libraries/NetCDF 4.3/toolsUI-4.3.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
