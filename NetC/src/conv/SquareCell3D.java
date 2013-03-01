@@ -16,15 +16,14 @@ public class SquareCell3D {
 	String inLonName = "Longitude";
 	String inDepthName = "Depth";
 	String inTimeName = "Time";
-	String inVarName = "v";
+	String inVarName = "w";
 	String outLatName = inLatName;
 	String outLonName = inLonName;
 	String outDepthName = inDepthName;
 	String outTimeName = inTimeName;
 	String outVarName = inVarName;
-	String outVarDesc = "eastward_seawater_velocity";
-	static String inFile = "Z:/NetCDF/AUS_v_2005.nc";
-	String outFile = "Z:/NetCDF/AUS_v_2005sq.nc";
+	static String inFile = "Y:/NERP_metadata/Samples/w_velocity.nc";
+	String outFile = "Y:/NERP_metadata/Samples/w_velocity_sq.nc";
 	float lb_valid = -300f;
 	float ub_valid = 300f;
 	float minlat,maxlat,minlon,maxlon;
@@ -253,8 +252,6 @@ public class SquareCell3D {
 				float.class, new int[] { 2 }, new float[] { minlat, maxlat }));
 		ncw.addVariableAttribute(outVarName, "units", "ms-1");
 		ncw.addVariableAttribute(outVarName, "missing_value", 1E34);
-		ncw.addVariableAttribute(outVarName, "standard_name", outVarDesc);
-		ncw.addVariableAttribute(outVarName, "long_name", outVarDesc);
 		ncw.addVariableAttribute(outVarName, "valid_range", Array.factory(
 				float.class, new int[] { 2 },
 				new float[] { lb_valid, ub_valid }));
