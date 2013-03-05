@@ -16,14 +16,14 @@ public class SquareCell3D {
 	String inLonName = "Longitude";
 	String inDepthName = "Depth";
 	String inTimeName = "Time";
-	String inVarName = "w";
+	String inVarName = "salinity";
 	String outLatName = inLatName;
 	String outLonName = inLonName;
 	String outDepthName = inDepthName;
 	String outTimeName = inTimeName;
 	String outVarName = inVarName;
-	static String inFile = "Y:/NERP_metadata/Samples/w_velocity.nc";
-	String outFile = "Y:/NERP_metadata/Samples/w_velocity_sq.nc";
+	static String inFile = "Y:/NERP_metadata/Samples/salinity.nc";
+	String outFile = "Y:/NERP_metadata/Samples/salinity_sq.nc";
 	float lb_valid = -300f;
 	float ub_valid = 300f;
 	float minlat,maxlat,minlon,maxlon;

@@ -15,15 +15,15 @@ public class SquareCell2D {
 	String inLonName = "Longitude";
 	String inDepthName = "depth";
 	String inTimeName = "Time";
-	String inVarName = "ssh";
+	static String inVarName = "ssh";
 	String outLatName = inLatName;
 	String outLonName = inLonName;
 	String outDepthName = inDepthName;
 	String outTimeName = inTimeName;
 	String outVarName = inVarName;
 	String outVarDesc = "SSH";
-	static String inFile = "C:/Temp/INDx_2005.nc";
-	String outFile = "C:/Temp/INDx_2005_ssh_sq.nc";
+	static String inFile = "Y:/NERP_metadata/Samples/"+inVarName+".nc";
+	String outFile = "Y:/NERP_metadata/Samples/"+inVarName+"_sq.nc";
 	float lb_valid = -500f;
 	float ub_valid = 500f;
 	float minlat, maxlat, minlon, maxlon;
