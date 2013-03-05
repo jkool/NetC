@@ -26,7 +26,7 @@ public class NetCDFDir2Block {
 
 	private double maxFileSize = 4E9;
 	private String fileDir = "V:/Data/HYCOM";
-	private String inVarName = "u";
+	private String inVarName = "w";
 	private String inHorizontalDim = "X";
 	private String inVerticalDim = "Y";
 	private String inTimeName = "MT";
@@ -42,7 +42,7 @@ public class NetCDFDir2Block {
 	private DateFormat df = new SimpleDateFormat("yyyy_MM_dd");
 	private FilenameFilter filter = new FilenamePatternFilter(".*_["
 			+ inVarName + "]_.*\\.nc");
-	private long blocksize = TimeConvert.daysToMillis("15");
+	private long blocksize = TimeConvert.daysToMillis("30");
 	private Array timeArr;
 	private Array depthArr;
 	private Array latArr;
@@ -78,7 +78,7 @@ public class NetCDFDir2Block {
 			selection = selectBetween(start_time, end_time, ncdir.getFiles());
 			String outputPath = outputDir + "/"
 					+ df.format(new Date(start_time)) + "_to_"
-					+ df.format(new Date(end_time)) + "_" + inVarName + ".nc";
+					+ df.format(new Date(end_time)) + "_tmp_" + inVarName + ".nc";
 			NetcdfFileWriteable ncf_write = makeTemplate(selection, outputPath);
 			copyContent(selection, ncf_write);
 			close(ncf_write);
@@ -88,8 +88,8 @@ public class NetCDFDir2Block {
 		// get the remainder
 		long time = blocks.get(blocks.size() - 1);
 		selection = selectAfter(time, ncdir.getFiles());
-		String outputPath = outputDir + "/" + df.format(new Date(time)) + "_"
-				+ inVarName + ".nc";
+		String outputPath = outputDir + "/" + df.format(new Date(time))
+				+ "_onward_" + inVarName + ".nc";
 		NetcdfFileWriteable ncf_write = makeTemplate(selection, outputPath);
 		copyContent(selection, ncf_write);
 	}
@@ -98,11 +98,11 @@ public class NetCDFDir2Block {
 			String outputFile) {
 
 		NetcdfFileWriteable ncf_out = null;
-		if(!(new File(outputDir).exists())){
-			throw new IllegalArgumentException("Directory " + outputDir + " does not exist.");
+		if (!(new File(outputDir).exists())) {
+			throw new IllegalArgumentException("Directory " + outputDir
+					+ " does not exist.");
 		}
-		
-		
+
 		try {
 			ncf_in = files.get((new ArrayList<Long>(files.keySet())).get(0));
 
@@ -254,7 +254,7 @@ public class NetCDFDir2Block {
 
 			Iterator<Long> it = map.keySet().iterator();
 			int ct = 0;
-			
+
 			while (it.hasNext()) {
 				long time = it.next();
 				System.out.print("\t" + ct + "\tWorking on " + new Date(time));
@@ -268,11 +268,12 @@ public class NetCDFDir2Block {
 				for (int i = 0; i < timesteps; i++) {
 					int[] origin_in = new int[] { i, 0, 0, 0 };
 					int[] origin_out = new int[] { ct, 0, 0, 0 };
-					ncf_out.write(outVarName, origin_out, invar.read(origin_in, shape));
+					ncf_out.write(outVarName, origin_out,
+							invar.read(origin_in, shape));
 					ct++;
 				}
 				System.out.println("\tDone.");
-	
+
 			}
 
 		} catch (IOException e) {

@@ -3,7 +3,6 @@ package conv;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
@@ -12,8 +11,7 @@ import ucar.nc2.*;
 import ucar.nc2.dataset.NetcdfDataset;
 
 /**
- * Extracts information from HYCOM using a network connection, 
- * taking into account the split in the middle of the Indian Ocean.
+ * Extracts information from HYCOM using a network connection.
  * 
  * @author Johnathan Kool
  */
@@ -21,35 +19,29 @@ import ucar.nc2.dataset.NetcdfDataset;
 public class ODAPExtract3D {
 
 	private String conn = "http://tds.hycom.org/thredds/dodsC/glb_analysis";
-	// private String conn = "http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_90.8/2010";
-	private String outputPath = "C:\\Temp\\IND_u_2005.nc";
+	private String outputPath = "C:/Temp/INDx_2005.nc";
 	private String inLatName = "Latitude";
 	private String inLonName = "Longitude";
-	private String inLayerName = "Depth";
 	private String inTimeName = "MT";
-	private String inVarName = "u";
+	private String inVarName = "ssh";
 	private String outLatName = inLatName;
 	private String outLonName = inLonName;
-	private String outLayerName = "Depth";
 	private String outTimeName = "Time";
-	private String outVarName = "u";
-	private float minlon = 24;//MNL 142;//IND 30;// SEAX 90;//NZ 160;
-	private float minlat = -40;//MNL -25;// IND -35; // SEAX -20;//NZ -50;
-	private float mindpth = 0;
-	private float mintime = 37985;//+365+365+365+365+366;// 38250;
-	private float maxlon = 106;//MNL 156;//IND 106;// SEAX 175;//NZ 185;
-	private float maxlat = 30.5f;//MNL -8;//IND 30;// SEAX 40;//NZ -30;
-	private float maxdpth = 20;
-	private float maxtime = mintime + (365*1)+31+182;//
-	private int doover = 0;// Use if you want to restart part way through.
-
-	private int minx, miny, maxx, maxy, minz, maxz, mint, maxt, full_length;
-	private boolean neglon = true;
-	private float[] ltr, lnr, dr;
-	private double[] tr;
+	private String outVarName = "ssh";
+	private double minlon = 24;//Mnl -5.5;//IND 24;//SEAX 90;//IND 35;//NZ 160;//30;//74.2;//30;
+	private double minlat = -40;//Mnl 30;//IND -40; //SEAX -20;//IND -30;//NZ -50;//-27.5;
+	private int mintime = 37762;//Mnl 38352;//37762;//37562;//39643;//-1;// 37550;//
+	private double maxlon = 106;//Mnl 42.5;//IND 106; //SEAX 175;//IND 100;//NZ 185;//74;//100;//74;
+	private double maxlat = 30.5;//Mnl 47.5;//IND 30.5; // SEAX 40;//IND 31;//NZ -30;//31;
+	private int maxtime = mintime+365;//Mnl 38716;//mintime+365;//Integer.MAX_VALUE;//39843;//Integer.MAX_VALUE;// 37700;//
+	private int doover = 0;
+	private int minx, miny, maxx, maxy, mint, maxt,full_length;
+	private boolean neglon = false;
 	private boolean split;
 	private double terma, termb;
-	private Array lna, lta, da, ta;
+	private float[] ltr, lnr;
+	private double[] tr;
+	private Array lna, lta, ta;
 	private ArrayList<Dimension> dims;
 	NetcdfFileWriteable outfile;
 	NetcdfDataset nds;
@@ -59,7 +51,7 @@ public class ODAPExtract3D {
 		// If there are no arguments provided (e.g. file), try obtaining
 		// from the keyboard.
 
-		if (args != null) {
+		if (args == null) {
 
 		}
 
@@ -75,6 +67,7 @@ public class ODAPExtract3D {
 
 		System.out.println("Complete.");
 		System.exit(0);
+
 	}
 
 	private void run() throws IOException {
@@ -95,6 +88,11 @@ public class ODAPExtract3D {
 			System.exit(-1);
 
 		}
+
+	}
+
+	private static void getTextInput() {
+		System.out.println("Implement me!");
 	}
 
 	/**
@@ -115,41 +113,32 @@ public class ODAPExtract3D {
 
 		// Create the output file
 
-		if(doover==0){
-		
 		outfile = NetcdfFileWriteable.createNew(outputPath, false);
 
-		
 		// Construct the data set dimensions - Time, Depth, Latitude and
 		// Longitude (in order)
 
 		Dimension timeDim = outfile.addDimension(outTimeName, tr.length);
-		Dimension layerDim = outfile.addDimension(outLayerName, dr.length);
 		Dimension latDim = outfile.addDimension(outLatName, ltr.length);
 		Dimension lonDim = outfile.addDimension(outLonName, lnr.length);
 
-		// Add to a list - this becomes the coordinate system for the output
+		// Add to a list - this becomes the co-ordinate system for the output
 		// variable
 
 		dims.add(timeDim);
-		dims.add(layerDim);
 		dims.add(latDim);
 		dims.add(lonDim);
 
 		// Create variables in the output file
 
 		outfile.addVariable(outTimeName, DataType.DOUBLE, dims.subList(0, 1));
-		outfile.addVariable(outLayerName, DataType.DOUBLE, dims.subList(1, 2));
-		outfile.addVariable(outLatName, DataType.DOUBLE, dims.subList(2, 3));
-		outfile.addVariable(outLonName, DataType.DOUBLE, dims.subList(3, 4));
-
-		// outfile.setLargeFile(true);
+		outfile.addVariable(outLatName, DataType.DOUBLE, dims.subList(1, 2));
+		outfile.addVariable(outLonName, DataType.DOUBLE, dims.subList(2, 3));
 		outfile.addVariable(outVarName, DataType.FLOAT, dims);
 
 		// Add attribute information (cloned from source)
 
 		cloneAttributes(ncd, inTimeName, outfile, outTimeName);
-		cloneAttributes(ncd, inLayerName, outfile, outLayerName);
 		cloneAttributes(ncd, inLatName, outfile, outLatName);
 		cloneAttributes(ncd, inLonName, outfile, outLonName);
 		cloneAttributes(ncd, inVarName, outfile, outVarName);
@@ -161,17 +150,9 @@ public class ODAPExtract3D {
 		// Write the static information for 1D axes.
 
 		outfile.write(outTimeName, ta);
-		outfile.write(outLayerName, da);
 		outfile.write(outLatName, lta);
 		outfile.write(outLonName, lna);
 
-		}
-		
-		else
-		{
-			outfile = NetcdfFileWriteable.openExisting(outputPath, false);
-		}
-		
 		// Read the parameter variable.
 
 		Variable v = ncd.findVariable(inVarName);
@@ -179,49 +160,34 @@ public class ODAPExtract3D {
 		// Rather than reading a 4-D chunk (which tends to be too large), we
 		// instead loop across the time axis
 
-		int m = 0;
-
+		//for (int k = 0; k < maxt - mint + 1; k++) {
 		for (int k = doover; k < maxt - mint; k++) {
-
-			Date d = new Date(System.currentTimeMillis());
-			System.out.println("Converting time step " + k + "..." + "("
-					+ d.toString() + ")");
+		
+			int m = 0;
 			try {
 
-				if (split) {
-
-					Array va = v.read(new int[] { k + mint, minz, miny, minx },
-							new int[] { 1, maxz - minz + 1, maxy - miny + 1,
-									full_length - minx });
-
-					outfile.write(outVarName, new int[] { k, 0, 0, 0 }, va);
-
-					Array vb = v.read(new int[] { k + mint, minz, miny, 0 },
-							new int[] { 1, maxz - minz + 1, maxy - miny + 1,
-									maxx + 1 });
-
-					outfile.write(outVarName, new int[] { k, 0, 0,
-							full_length - minx }, vb);
-
-					if (inVarName.startsWith("u")) {//Create a more sophisticated patch...
-						Array patch = v.read(new int[] { k + mint, minz, miny,
-								0 }, new int[] { 1, maxz - minz + 1,
-								maxy - miny + 1, 1 });
-						outfile.write(outVarName, new int[] { k, 0, 0,
-								full_length - minx - 1 }, patch);
+				System.out.println("Converting time step " + k + "...");
+				
+				if(split){
+					
+					Array va = v.read(new int[] { k + mint, miny, minx },
+							new int[] { 1, maxy - miny + 1,
+							full_length - minx});
+					
+					outfile.write(outVarName, new int[] { k, 0, 0 }, va);
+					
+					Array vb = v.read(new int[] { k + mint, miny, 0 },
+							new int[] { 1, maxy-miny + 1,
+							maxx});
+					
+					outfile.write(outVarName, new int[] { k, 0, full_length-minx}, vb);
+					
 					}
-
-				} else {
-					Array va = v.read(new int[] { k + mint, minz, miny, minx },
-							new int[] { 1, maxz - minz + 1, maxy - miny + 1,
-									maxx - minx + 1 });
-					outfile.write(outVarName, new int[] { k, 0, 0, 0 }, va);
-				}
-
-			} catch (IOException de) {
-				
-				// Attempt some re-tries if the connection is lost.
-				
+					else{
+				Array va = v.read(new int[] { k + mint, miny, minx },
+						new int[] { 1, maxy - miny + 1, maxx - minx + 1 });
+				outfile.write(outVarName, new int[] { k, 0, 0 }, va);}
+			} catch (Exception de) {
 				System.out.println("WARNING:  OPENDAP Error - retry");
 				if (m > 5) {
 					Scanner input = new Scanner(System.in);
@@ -231,7 +197,7 @@ public class ODAPExtract3D {
 					while (repeat) {
 						String resp = input.next();
 						if (resp.equalsIgnoreCase("y")) {
-							//ncd.close();
+							ncd.close();
 							ncd = NetcdfDataset.openDataset(conn);
 							repeat = false;
 							nds = ncd;
@@ -247,7 +213,7 @@ public class ODAPExtract3D {
 					}
 				}
 				try {
-					Thread.sleep(5000*60*2*6);
+					Thread.sleep(5000 * (1 + m));
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -291,13 +257,6 @@ public class ODAPExtract3D {
 					+ " was not found.");
 		}
 
-		Variable layer = ncd.findVariable(inLayerName);
-
-		if (layer == null) {
-			throw new IllegalArgumentException("Variable: " + inLayerName
-					+ " was not found.");
-		}
-
 		Variable time = ncd.findVariable(inTimeName);
 
 		if (time == null) {
@@ -305,39 +264,23 @@ public class ODAPExtract3D {
 					+ " was not found.");
 		}
 
-		// There is a possibility that the reference scheme may be shifted.
-		// Also, since this is circular let's do a brute force search and
-		// look for the minimum distance between values.
-
-		// First, we need to retrieve index vectors for lon and lat for
-		// searching. This is done by reading from lon and lat, the first term is the
-		// origin, and the second is the shape we wish to retrieve.
 		// As a cheap start, we take the middle vector for both latitude and
 		// longitude. For right now we're ducking the curvilinear coordinate
 		// issue, and assuming we're not near the poles. We implement as a big
 		// block instead of get1DDoubleRange, otherwise reading the array takes
 		// forever. This is a consequence of using x and y as dimensions as
-		// opposed to lat and lon. Lat and lon are no longer vectors, but 4-D
-		// arrays.
-		
-		//Commented lines are for a different version of the NetCDF Java library.
+		// opposed to lat and lon. Lat and lon are not vectors, but 4-D arrays.
 
-		//lna = lon.read(new int[] { Math.round((lon.getShape()[0] - 1) / 2), 0,
-		//		0, 0 }, new int[] { 1, lon.getShape()[1], 0, 0 });
-		lna = lon.read(new int[] { Math.round((lon.getShape()[0] - 1) / 2),
-		0}, new int[] { 1, lon.getShape()[1]});
-		//lta = lat.read(new int[] { 0, Math.round((lat.getShape()[1] - 1) / 2),
-		//		0, 0 }, new int[] { lat.getShape()[0], 1, 0, 0 });
-		lta = lat.read(new int[] { 0, Math.round((lat.getShape()[1] - 1) /
-		2)}, new int[] { lat.getShape()[0], 1});
-		da = layer.read();
+		lna = lon.read(new int[] { Math.round((lon.getShape()[0] - 1) / 2), 0,
+				0, 0 }, new int[] { 1, lon.getShape()[1], 0, 0 });
+		lta = lat.read(new int[] { 0, Math.round((lat.getShape()[1] - 1) / 2),
+				0, 0 }, new int[] { lat.getShape()[0], 1, 0, 0 });
 		ta = time.read();
 
 		// Convert all of our 1D information into Java arrays for searching
 
 		lnr = (float[]) lna.copyTo1DJavaArray();
 		ltr = (float[]) lta.copyTo1DJavaArray();
-		dr = (float[]) da.copyTo1DJavaArray();
 		tr = (double[]) ta.copyTo1DJavaArray();
 
 		// If we're using negative lon values as input, convert them to positive
@@ -345,30 +288,28 @@ public class ODAPExtract3D {
 
 		if (neglon == true) {
 			if (minlon < 0) {
-				minlon = (360 + minlon) % 360;
+				minlon = (360 + minlon)%360;
 			}
 			if (maxlon < 0) {
-				maxlon = (360 + maxlon) % 360;
+				maxlon = (360 + maxlon)%360;
 			}
 		}
-
-		terma = (360 + lnr[0]) % 360;
-		termb = (360 + lnr[lnr.length - 1]) % 360;
+		
+		terma = (360+lnr[0])%360;
+		termb = (360+lnr[lnr.length-1])%360;
 		full_length = lnr.length;
-
-		if (minlon < terma && maxlon > termb) {
-			split = true;
-		}
+		
+		if(minlon<terma && maxlon>termb){split = true;}
 
 		double df1 = Double.MAX_VALUE;
 		double df2 = Double.MAX_VALUE;
 
-		// Here we use modulo 360  We find the minimum difference 
-		// running through the entire data set. We are searching for
-		// the indices of x that correspond to our given min and max lon values.
+		// Here we use modulo 360 - it is hard-coded in for the time being,
+		// otherwise decision-making would be a giant pain to code. 
+		// We find the minimum difference running through the entire data set.
 
 		for (int i = 0; i < lnr.length; i++) {
-			lnr[i] = (360 + lnr[i]) % 360;
+			lnr[i] = lnr[i] % 360;
 			if (Math.abs(lnr[i] - minlon) < Math.abs(df1)) {
 				df1 = lnr[i] - minlon;
 				minx = i;
@@ -393,18 +334,8 @@ public class ODAPExtract3D {
 			}
 		}
 
-		// Depth (z) and Time (t) are not circular for our purposes, and
+		// Time (t) is not circular for our purposes, and
 		// so instead we use binary search.
-
-		minz = Arrays.binarySearch(dr, mindpth);
-		if (minz < 0) {
-			minz = -(minz + 1);
-		}
-
-		maxz = Arrays.binarySearch(dr, maxdpth);
-		if (maxz < 0) {
-			maxz = -(maxz + 1);
-		}
 
 		mint = Arrays.binarySearch(tr, mintime);
 		if (mint < 0) {
@@ -423,23 +354,20 @@ public class ODAPExtract3D {
 
 		// Since we're here and have all the variables we need, we might as well
 		// clip now
-
-		if (split) {
-			float[] hold = new float[lnr.length - minx + maxx + 1];
-			System.arraycopy(lnr, minx, hold, 0, lnr.length - minx);
-			System.arraycopy(lnr, 0, hold, lnr.length - minx, maxx + 1);
+		
+		if(split){
+			float[] hold = new float[lnr.length-minx+maxx+1];
+			System.arraycopy(lnr, minx, hold, 0, lnr.length-minx);
+			System.arraycopy(lnr, 0, hold, lnr.length-minx, maxx+1);
 			System.out.println();
 			lnr = hold;
-		} else {
-			if (maxx - minx != lnr.length - 1) {
-				lnr = Arrays.copyOfRange(lnr, minx, maxx + 1);
-			}
 		}
+		else{
+		if (maxx - minx != lnr.length - 1) {
+			lnr = Arrays.copyOfRange(lnr, minx, maxx + 1);
+		}}
 		if (maxy - miny != ltr.length - 1) {
 			ltr = Arrays.copyOfRange(ltr, miny, maxy + 1);
-		}
-		if (maxz - minz != dr.length - 1) {
-			dr = Arrays.copyOfRange(dr, minz, maxz + 1);
 		}
 		if (maxt - mint != tr.length - 1) {
 			tr = Arrays.copyOfRange(tr, mint, maxt);
@@ -447,7 +375,6 @@ public class ODAPExtract3D {
 
 		lna = Array.factory(float.class, new int[] { lnr.length }, lnr);
 		lta = Array.factory(float.class, new int[] { ltr.length }, ltr);
-		da = Array.factory(float.class, new int[] { dr.length }, dr);
 		ta = Array.factory(double.class, new int[] { tr.length }, tr);
 
 		for (int i = 0; i < tr.length - 1; i++) {
@@ -486,94 +413,5 @@ public class ODAPExtract3D {
 			outfile.addVariableAttribute(outVarName, a);
 		}
 	}
-	
-	// Getters and setters
-
-	public String getOutputPath() {
-		return outputPath;
-	}
-
-	public void setOutputPath(String outputPath) {
-		this.outputPath = outputPath;
-	}
-
-	public String getInVarName() {
-		return inVarName;
-	}
-
-	public void setInVarName(String inVarName) {
-		this.inVarName = inVarName;
-	}
-
-	public String getOutVarName() {
-		return outVarName;
-	}
-
-	public void setOutVarName(String outVarName) {
-		this.outVarName = outVarName;
-	}
-
-	public float getMinlon() {
-		return minlon;
-	}
-
-	public void setMinlon(float minlon) {
-		this.minlon = minlon;
-	}
-
-	public float getMinlat() {
-		return minlat;
-	}
-
-	public void setMinlat(float minlat) {
-		this.minlat = minlat;
-	}
-
-	public float getMindpth() {
-		return mindpth;
-	}
-
-	public void setMindpth(float mindpth) {
-		this.mindpth = mindpth;
-	}
-
-	public float getMintime() {
-		return mintime;
-	}
-
-	public void setMintime(float mintime) {
-		this.mintime = mintime;
-	}
-
-	public float getMaxlon() {
-		return maxlon;
-	}
-
-	public void setMaxlon(float maxlon) {
-		this.maxlon = maxlon;
-	}
-
-	public float getMaxlat() {
-		return maxlat;
-	}
-
-	public void setMaxlat(float maxlat) {
-		this.maxlat = maxlat;
-	}
-
-	public float getMaxdpth() {
-		return maxdpth;
-	}
-
-	public void setMaxdpth(float maxdpth) {
-		this.maxdpth = maxdpth;
-	}
-
-	public float getMaxtime() {
-		return maxtime;
-	}
-
-	public void setMaxtime(float maxtime) {
-		this.maxtime = maxtime;
-	}
 }
+

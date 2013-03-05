@@ -18,7 +18,7 @@ import ucar.nc2.dataset.NetcdfDataset;
  * @author Johnathan Kool
  */
 
-public class ODAPExtract3D_4 {
+public class ODAPExtract4D_4 {
 
 	private String conn = "http://tds.hycom.org/thredds/dodsC/glb_analysis";
 	// private String conn = "http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_90.8/2010";
@@ -63,7 +63,7 @@ public class ODAPExtract3D_4 {
 
 		}
 
-		ODAPExtract3D_4 to = new ODAPExtract3D_4();
+		ODAPExtract4D_4 to = new ODAPExtract4D_4();
 
 		try {
 			to.run();
