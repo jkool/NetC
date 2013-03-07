@@ -18,12 +18,12 @@ import utilities.Utils;
 
 public class GenerateTest {
 
-	private String outputPath = "C:\\Temp\\bath_y_m.nc";
+	private String outputPath = "C:\\Temp\\Negative_Ones.nc";
 	private String outLatName = "Latitude";
 	private String outLonName = "Longitude";
 	private String outLayerName = "Depth";
 	private String outTimeName = "Time";
-	private String outVarName = "bathymetry";
+	private String outVarName = "Variable_X";
 	private float minLon = -2;//MNL 142;//IND 30;// SEAX 90;//NZ 160;
 	private float minLat = -2;//MNL -25;// IND -35; // SEAX -20;//NZ -50;
 	private float minZ = -2;
@@ -94,8 +94,8 @@ public class GenerateTest {
 
 		lnr = MatrixUtilities.linspace(minLon,maxLon,londim);
 		ltr = MatrixUtilities.linspace(minLat,maxLat,latdim);
-		//dr = MatrixUtilities.linspace(minZ,maxZ,zdim);
-		//tr = MatrixUtilities.linspace(minTime,maxTime,tdim);
+		dr = MatrixUtilities.linspace(minZ,maxZ,zdim);
+		tr = MatrixUtilities.linspace(minTime,maxTime,tdim);
 		
 		// Set up empty arrays for ranges and dimensions.
 
@@ -108,23 +108,23 @@ public class GenerateTest {
 		// Construct the data set dimensions - Time, Depth, Latitude and
 		// Longitude (in order)
 
-		//Dimension timeDim = outfile.addUnlimitedDimension(outTimeName);
-		//Dimension layerDim = outfile.addDimension(outLayerName, dr.length);
+		Dimension timeDim = outfile.addUnlimitedDimension(outTimeName);
+		Dimension layerDim = outfile.addDimension(outLayerName, dr.length);
 		Dimension latDim = outfile.addDimension(outLatName, ltr.length);
 		Dimension lonDim = outfile.addDimension(outLonName, lnr.length);
 
 		// Add to a list - this becomes the coordinate system for the output
 		// variable
 
-		//dims.add(timeDim);
-		//dims.add(layerDim);
+		dims.add(timeDim);
+		dims.add(layerDim);
 		dims.add(latDim);
 		dims.add(lonDim);
 
 		// Create variables in the output file
 
-		//outfile.addVariable(outTimeName, DataType.DOUBLE, new Dimension[]{timeDim});
-		//outfile.addVariable(outLayerName, DataType.DOUBLE, new Dimension[]{layerDim});
+		outfile.addVariable(outTimeName, DataType.DOUBLE, new Dimension[]{timeDim});
+		outfile.addVariable(outLayerName, DataType.DOUBLE, new Dimension[]{layerDim});
 		outfile.addVariable(outLatName, DataType.DOUBLE, new Dimension[]{latDim});
 		outfile.addVariable(outLonName, DataType.DOUBLE, new Dimension[]{lonDim});
 
@@ -142,18 +142,18 @@ public class GenerateTest {
 
 		// Write the static information for 1D axes.
 
-		//outfile.write(outTimeName, Array.factory(tr));
-		//outfile.write(outLayerName, Array.factory(dr));
+		outfile.write(outTimeName, Array.factory(tr));
+		outfile.write(outLayerName, Array.factory(dr));
 		outfile.write(outLatName, Array.factory(ltr));
 		outfile.write(outLonName, Array.factory(lnr));
 
-		//ArrayDouble A = new ArrayDouble.D4(tdim, zdim, latdim, londim);
-		ArrayDouble A = new ArrayDouble.D2(latdim, londim);
+		ArrayDouble A = new ArrayDouble.D4(tdim, zdim, latdim, londim);
+		//ArrayDouble A = new ArrayDouble.D2(latdim, londim);
 		Index idx = A.getIndex();
 		
 		// Loop across the time axis
 		
-		//for (int t = 0; t < tdim; t++) {
+		for (int t = 0; t < tdim; t++) {
 
 			//Date d = new Date(System.currentTimeMillis());
 			//System.out.println("Converting time step " + t + "..." + "("
@@ -162,7 +162,7 @@ public class GenerateTest {
 			double [] val;
 			float ct = 0;
 			
-			//for(int k = 0; k < zdim; k++){
+			for(int k = 0; k < zdim; k++){
 				for(int i = 0; i < latdim; i++){
 					for(int j = 0; j < londim; j++){
 						//val =  -((2*dr[k])-1);
@@ -173,25 +173,26 @@ public class GenerateTest {
 						//float[] gravity = MatrixUtilities.subtract(n,arr);
 						//val = MatrixUtilities.add(tmp, gravity);
 						//float scale = .00001f/1.11f;
+						A.set(idx.set(t,k,i,j), -1);
 						//A.set(idx.set(t,k,i,j), val[0]);
 						//A.set(idx.set(t,k,i,j), val[1]);
 						//A.set(idx.set(t,k,i,j), dr[k]>=0.5?Float.NaN:dr[k]);
 						//A.set(idx.set(t,k,i,j), dr[k]>=0.5?Float.NaN:-ltr[i]*scale);
 						//A.set(idx.set(i,j), ltr[i]);
 						//A.set(idx.set(t,k,i,j), ct*1E-3);
-						val = Utils.lonlat2ceqd(new double[]{ltr[i],lnr[j]});
-						A.set(idx.set(i,j), (float)val[0]);
+						//val = Utils.lonlat2ceqd(new double[]{ltr[i],lnr[j]});
+						//A.set(idx.set(i,j), (float)val[0]);
 						//A.set(idx.set(i,j), ct);
 						//A.set(idx.set(t,k,i,j), lnr[j]);
 						//A.set(idx.set(t,k,i,j), dr[k]>=0.5?Float.NaN:0);
 						ct++;
 					}
 				}
-			//}
-		//}
+			}
+		}
 
-		//outfile.write(outVarName, new int[4], A);
-		  outfile.write(outVarName, new int[2], A);
+		outfile.write(outVarName, new int[4], A);
+		//outfile.write(outVarName, new int[2], A);
 
 		// Clean-up duty
 
