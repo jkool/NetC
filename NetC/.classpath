@@ -6,5 +6,6 @@
 	<classpathentry kind="lib" path="Z:/Libraries/Flanagan/flanagan.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jdk1.7.0_03"/>
 	<classpathentry kind="lib" path="Z:/Libraries/NetCDF 4.3/toolsUI-4.3.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

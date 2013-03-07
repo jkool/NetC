@@ -2,7 +2,6 @@ package conv;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import ucar.ma2.*;
@@ -36,7 +35,22 @@ public class MakeW {
 	private String outLayerName = "Depth";
 	private String outTimeName = "Time";
 	private String outVarName = "w";
+	private boolean reproject = true;
 
+	/**
+	 * Calculates the change in w over a change in z
+	 * 
+	 * @param lats
+	 *            - an Array of latitude values
+	 * @param lons
+	 *            - an Array of longitude values
+	 * @param us
+	 *            - an Array of u (east-west) velocity values
+	 * @param vs
+	 *            - an Array of v (north-south) velocity values
+	 * @return
+	 */
+	
 	private float calcdwdz(Array lats, Array lons, Array us, Array vs) {
 		float du = dx(us);
 		if (Float.isNaN(du)) {
@@ -46,7 +60,14 @@ public class MakeW {
 		if (Float.isNaN(dv)) {
 			return dv;
 		}
-		Array[] prj = prj2meters(lons, lats);
+		
+		Array[] prj;
+		
+		if (reproject) {
+			prj = prj2meters(lons, lats);
+		} else {
+			prj = new Array[] { lons, lats };
+		}
 		double dx0 = prj[0].getDouble(0);
 		double dx1 = prj[0].getDouble((int) prj[0].getSize() - 1);
 		double dx = dx1 - dx0;
@@ -57,6 +78,15 @@ public class MakeW {
 		float dvdy = dv / (float) dy;
 		return dudx + dvdy;
 	}
+	
+	/**
+	 * Calculates the difference in depth
+	 * 
+	 * @param k - the index of the depth layer
+	 * @param mpz - midpoint depth values
+	 * @param maxZ - maximum depth value
+	 * @return
+	 */
 
 	private float calcdz(int k, float[] mpz, float maxZ) {
 		if (maxZ < mpz[k]) {
@@ -68,6 +98,15 @@ public class MakeW {
 			return mpz[k+1] - mpz[k];
 		}
 	}
+	
+	/**
+	 * Clones the attributes of the input file(s) to the output file
+	 * 
+	 * @param infile
+	 * @param inVarName
+	 * @param outfile
+	 * @param outVarName
+	 */
 
 	private void cloneAttributes(NetcdfDataset infile, String inVarName,
 			NetcdfFileWriteable outfile, String outVarName) {
@@ -83,6 +122,14 @@ public class MakeW {
 		}
 	}
 
+	/**
+	 * Calculates change in the x direction
+	 * 
+	 * @param arr
+	 *            - a 3x3 array of numbers
+	 * @return
+	 */
+	
 	private float dx(Array arr) {
 		Index idx = Index.factory(arr.getShape());
 		float e = arr.getFloat(idx.set(1, 1));
@@ -103,6 +150,14 @@ public class MakeW {
 		i = Float.isNaN(i) ? 0 : i;
 		return ((c + 2 * f + i) - (a + 2 * d + g)) / 8;
 	}
+	
+	/**
+	 * Calculates change in the y direction
+	 * 
+	 * @param arr
+	 *            - a 3x3 array of numbers
+	 * @return
+	 */
 
 	private float dy(Array arr) {
 		Index idx = Index.factory(arr.getShape());
@@ -124,6 +179,17 @@ public class MakeW {
 		i = Float.isNaN(i) ? 0 : i;
 		return ((g + 2 * h + i) - (a + 2 * b + c)) / 8;
 	}
+	
+	/**
+	 * Creates the w file
+	 * 
+	 * @param uFile
+	 *            - the input east-west velocity file
+	 * @param vFile
+	 *            - the input north-south velocity file
+	 * @throws InvalidRangeException
+	 * @throws IOException
+	 */
 
 	private void generate(NetcdfDataset uFile, NetcdfDataset vFile)
 			throws InvalidRangeException, IOException {
@@ -297,67 +363,6 @@ public class MakeW {
 			System.out.printf("Time %d of " + (u.getShape(0) - 1)
 					+ " is complete.\n", t);
 		}
-
-	}
-
-	public String getInLatName() {
-		return inLatName;
-	}
-
-	public String getInLayerName() {
-		return inLayerName;
-	}
-
-	public String getInLonName() {
-		return inLonName;
-	}
-
-	public String getInputBathyFile() {
-		return inputBathyFile;
-	}
-
-	public String getInputUFile() {
-		return inputUFile;
-	}
-
-	public String getInputVFile() {
-		return inputVFile;
-	}
-
-	public String getInTimeName() {
-		return inTimeName;
-	}
-
-	public String getInUName() {
-		return inUName;
-	}
-
-	public String getInVName() {
-		return inVName;
-	}
-
-	public String getOutLatName() {
-		return outLatName;
-	}
-
-	public String getOutLayerName() {
-		return outLayerName;
-	}
-
-	public String getOutLonName() {
-		return outLonName;
-	}
-
-	public String getOutputWFile() {
-		return outputWFile;
-	}
-
-	public String getOutTimeName() {
-		return outTimeName;
-	}
-
-	public String getOutVarName() {
-		return outVarName;
 	}
 
 	public void go() {
@@ -379,10 +384,19 @@ public class MakeW {
 
 		System.out.println("Complete.");
 	}
+	
+	/**
+	 * Projects the arrays of longitudes and latitudes to a Cylindrical
+	 * Equidistant Projection to bring x,y and z into a uniform coordinate
+	 * system (meters).
+	 * 
+	 * @param lons
+	 * @param lats
+	 * @return
+	 */
 
 	private Array[] prj2meters(Array lons, Array lats) {
 		Array[] out = new Array[2];
-		assert Arrays.equals(lats.getShape(), lons.getShape());
 		Index ltidx = Index.factory(lats.getShape());
 		Index lnidx = Index.factory(lons.getShape());
 		Array lats_prj = Array.factory(java.lang.Double.class, lats.getShape());
@@ -401,64 +415,315 @@ public class MakeW {
 		out[1] = lats_prj;
 		return out;
 	}
+	
+	/**
+	 * Retrieves the name of the Latitude Variable
+	 * 
+	 * @return
+	 */
 
+	public String getInLatName() {
+		return inLatName;
+	}
+
+	/**
+	 * Retrieves the name of the Depth Variable
+	 * 
+	 * @return
+	 */
+	
+	public String getInLayerName() {
+		return inLayerName;
+	}
+
+	/**
+	 * Retrieves the name of the Longitude Variable
+	 * 
+	 * @return
+	 */
+	
+	public String getInLonName() {
+		return inLonName;
+	}
+
+	/**
+	 * Retrieves the name of the bathymetry file used as a boundary.
+	 * 
+	 * @return
+	 */
+	
+	public String getInputBathyFile() {
+		return inputBathyFile;
+	}
+
+	/**
+	 * Retrieves the u-velocity input file
+	 * 
+	 * @return
+	 */
+	
+	public String getInputUFile() {
+		return inputUFile;
+	}
+
+	/**
+	 * Retrieves the v-velocity input file
+	 * 
+	 * @return
+	 */
+	
+	public String getInputVFile() {
+		return inputVFile;
+	}
+	
+	/**
+	 * Retrieves the name of the Time Variable
+	 * 
+	 * @return
+	 */
+
+	public String getInTimeName() {
+		return inTimeName;
+	}
+
+	/**
+	 * Retrieves the name of the u (east-west velocity) Variable
+	 * 
+	 * @return
+	 */
+	
+	public String getInUName() {
+		return inUName;
+	}
+
+	/**
+	 * Retrieves the name of the v (east-west velocity) Variable
+	 * 
+	 * @return
+	 */
+	
+	public String getInVName() {
+		return inVName;
+	}
+	
+	/**
+	 * Retrieves the name of the output Latitude Variable
+	 * 
+	 * @return
+	 */
+
+	public String getOutLatName() {
+		return outLatName;
+	}
+
+	/**
+	 * Retrieves the name of the output Depth Variable
+	 * 
+	 * @return
+	 */
+	
+	public String getOutLayerName() {
+		return outLayerName;
+	}
+
+	/**
+	 * Retrieves the name of the output Longitude Variable
+	 * 
+	 * @return
+	 */
+	
+	public String getOutLonName() {
+		return outLonName;
+	}
+	
+	/**
+	 * Retrieves the name of the output w file
+	 * 
+	 * @return
+	 */
+
+	public String getOutputWFile() {
+		return outputWFile;
+	}
+	
+	/**
+	 * Retrieves the name of the output Time Variable
+	 * 
+	 * @return
+	 */
+
+	public String getOutTimeName() {
+		return outTimeName;
+	}
+
+	/**
+	 * Retrieves the name of the output Variable
+	 * 
+	 * @return
+	 */
+	
+	public String getOutVarName() {
+		return outVarName;
+	}
+	
+	/**
+	 * Sets the name of the input Latitude Variable
+	 * 
+	 * @param inLatName
+	 */
+	
 	public void setInLatName(String inLatName) {
 		this.inLatName = inLatName;
 	}
+	
+	/**
+	 * Sets the name of the input Depth Variable
+	 * 
+	 * @param inLayerName
+	 */
 
 	public void setInLayerName(String inLayerName) {
 		this.inLayerName = inLayerName;
 	}
 
+	/**
+	 * Sets the name of the input Longitude Variable
+	 * 
+	 * @param inLonName
+	 */
+	
 	public void setInLonName(String inLonName) {
 		this.inLonName = inLonName;
 	}
 
+	/**
+	 * Sets the name of the input bathymetry file
+	 * 
+	 * @param inputBathyFile
+	 */
+	
 	public void setInputBathyFile(String inputBathyFile) {
 		this.inputBathyFile = inputBathyFile;
 	}
 
+	/**
+	 * Sets the name of the input u (east-west) velocity file
+	 * 
+	 * @param inputUFile
+	 */
+	
 	public void setInputUFile(String inputUFile) {
 		this.inputUFile = inputUFile;
 	}
+	
+	/**
+	 * Sets the name of the input v (north-south) velocity file
+	 * 
+	 * @param inputVFile
+	 */
 
 	public void setInputVFile(String inputVFile) {
 		this.inputVFile = inputVFile;
 	}
+	
+	/**
+	 * Sets the name of the input Time Variable
+	 * 
+	 * @param inTimeName
+	 */
 
 	public void setInTimeName(String inTimeName) {
 		this.inTimeName = inTimeName;
 	}
+	
+	/**
+	 * Sets the name of the input u (east-west) velocity Variable
+	 * 
+	 * @param inUName
+	 */
 
 	public void setInUName(String inUName) {
 		this.inUName = inUName;
 	}
+	
+	/**
+	 * Sets the name of the input v (north-south) velocity Variable
+	 * 
+	 * @param inVName
+	 */
 
 	public void setInVName(String inVName) {
 		this.inVName = inVName;
 	}
 
+	/**
+	 * Sets the name of the output Latitude Variable
+	 * 
+	 * @param outLatName
+	 */
+	
 	public void setOutLatName(String outLatName) {
 		this.outLatName = outLatName;
 	}
 
+	/**
+	 * Sets the name of the output Depth Variable
+	 * 
+	 * @param outLayerName
+	 */
+	
 	public void setOutLayerName(String outLayerName) {
 		this.outLayerName = outLayerName;
 	}
 
+	/**
+	 * Sets the name of the output Longitude Variable
+	 * 
+	 * @param outLonName
+	 */
+	
 	public void setOutLonName(String outLonName) {
 		this.outLonName = outLonName;
 	}
 
+	/**
+	 * Sets the name of the output w velocity file
+	 * 
+	 * @param outputWFile
+	 */
+	
 	public void setOutputWFile(String outputWFile) {
 		this.outputWFile = outputWFile;
 	}
+	
+	/**
+	 * Sets the name of the output Time Variable
+	 * 
+	 * @param outTimeName
+	 */
 
 	public void setOutTimeName(String outTimeName) {
 		this.outTimeName = outTimeName;
 	}
+	
+	/**
+	 * Sets the name of the output Variable
+	 * 
+	 * @param outVarName
+	 */
 
 	public void setOutVarName(String outVarName) {
 		this.outVarName = outVarName;
+	}
+	
+	/**
+	 * Sets whether the data should be re-projected when
+	 * calculating the velocity values
+	 * 
+	 * @param reproject
+	 */
+	
+	public void setReproject(boolean reproject){
+		this.reproject = reproject;
 	}
 }
