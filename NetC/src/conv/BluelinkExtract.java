@@ -90,10 +90,6 @@ public class BluelinkExtract {
 		}
 	}
 
-	private static void getTextInput() {
-		System.out.println("Implement me!");
-	}
-
 	/**
 	 * This method sets up the output file for writing the output file. The
 	 * potential mix of attribute types makes generalization complicated.
@@ -211,6 +207,7 @@ public class BluelinkExtract {
 							System.out.println(resp + " is not a valid option.  Please select y(es) or n(o). > ");
 						}
 					}
+					input.close();
 				}
 				try {
 					Thread.sleep(5000);
@@ -225,6 +222,7 @@ public class BluelinkExtract {
 
 		// Clean-up duty
 
+		br.close();
 		outfile.flush();
 		outfile.finish();
 		outfile.close();

@@ -2,13 +2,13 @@ package conv;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
+//import java.util.Date;
 
 import ucar.ma2.*;
 import ucar.nc2.*;
 import ucar.nc2.dataset.NetcdfDataset;
 import utilities.MatrixUtilities;
-import utilities.Utils;
+//import utilities.Utils;
 
 /**
  * Extracts information from HYCOM using a network connection.
@@ -130,8 +130,8 @@ public class MakeTest_2D {
 		ArrayDouble A = new ArrayDouble.D2(latdim, londim);
 		Index idx = A.getIndex();
 
-		double[] val;
-		float ct = 0;
+		//double[] val;
+		//float ct = 0;
 		for (int i = 0; i < latdim; i++) {
 			for (int j = 0; j < londim; j++) {
 				// float scale = .00001f/1.11f;
@@ -141,7 +141,7 @@ public class MakeTest_2D {
 				// val = Utils.lonlat2ceqd(new double[]{ltr[i],lnr[j]});
 				// A.set(idx.set(i,j), (float)val[0]);
 				// A.set(idx.set(i,j), ct);
-				ct++;
+				//ct++;
 			}
 		}
 

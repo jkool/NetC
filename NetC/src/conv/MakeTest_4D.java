@@ -2,13 +2,13 @@ package conv;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
+//import java.util.Date;
 
 import ucar.ma2.*;
 import ucar.nc2.*;
 import ucar.nc2.dataset.NetcdfDataset;
 import utilities.MatrixUtilities;
-import utilities.Utils;
+//import utilities.Utils;
 
 /**
  * Extracts information from HYCOM using a network connection.
@@ -158,8 +158,8 @@ public class MakeTest_4D {
 			//System.out.println("Converting time step " + t + "..." + "("
 			//		+ d.toString() + ")");
 			
-			double [] val;
-			float ct = 0;
+			//double [] val;
+			//float ct = 0;
 			
 			for(int k = 0; k < zdim; k++){
 				for(int i = 0; i < latdim; i++){
@@ -181,7 +181,7 @@ public class MakeTest_4D {
 						//val = Utils.lonlat2ceqd(new double[]{ltr[i],lnr[j]});
 						//A.set(idx.set(t,k,i,j), lnr[j]);
 						//A.set(idx.set(t,k,i,j), dr[k]>=0.5?Float.NaN:0);
-						ct++;
+						//ct++;
 					}
 				}
 			}
