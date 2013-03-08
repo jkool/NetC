@@ -19,8 +19,8 @@ public class NetCDF_FloatGrid_3D {
 	private String lonName = "Longitude";
 	private float[] lats, lons;
 	private Array array;
-	
-	public NetCDF_FloatGrid_3D(String fileName){
+
+	public NetCDF_FloatGrid_3D(String fileName) {
 
 		try {
 			file = NetcdfFile.open(fileName);
@@ -33,7 +33,7 @@ public class NetCDF_FloatGrid_3D {
 		lonvar = file.findVariable(lonName);
 	}
 
-	public NetCDF_FloatGrid_3D(String fileName, String latName, String lonName){
+	public NetCDF_FloatGrid_3D(String fileName, String latName, String lonName) {
 
 		try {
 			file = NetcdfFile.open(fileName);
@@ -47,22 +47,34 @@ public class NetCDF_FloatGrid_3D {
 		latvar = file.findVariable(latName);
 		lonvar = file.findVariable(lonName);
 	}
-	
-	public int[] lonlat2ij(float lon, float lat){
-		
-		int[] result = new int[]{-1,-1};
-		
+
+	public int[] lonlat2ij(float lon, float lat) {
+
+		int[] result = new int[] { -1, -1 };
+
 		try {
 			int[] shp = latvar.getShape();
-			Array latarr = latvar.read(new int[]{0,0}, new int[]{shp[0],1});
-			//Array latarr = latvar.read(new int[]{0}, new int[]{shp[0]});
+			Array latarr;
+			if (latvar.getRank() == 2) {
+				latarr = latvar.read(new int[] { 0, 0 },
+						new int[] { shp[0], 1 });
+			} else {
+				latarr = latvar.read(new int[] { 0 }, new int[] { shp[0] });
+			}
 			lats = toJArray(latarr);
 			result[0] = binary_search(lats, lat);
-			Array lonarr = lonvar.read(new int[]{result[0],0}, new int[]{1,shp[1]});
-			//Array lonarr = lonvar.read(new int[]{0}, new int[]{lonvar.getShape()[0]});
+
+			Array lonarr;
+			if (lonvar.getRank() == 2) {
+				lonarr = lonvar.read(new int[] { result[0], 0 }, new int[] { 1,
+						shp[1] });
+			} else {
+				lonarr = lonvar.read(new int[] { 0 },
+						new int[] { lonvar.getShape()[0] });
+			}
 			lons = toJArray(lonarr);
-			result[1] = binary_search(lons, lon<lons[0]?lon+360:lon);
-			
+			result[1] = binary_search(lons, lon < lons[0] ? lon + 360 : lon);
+
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -72,11 +84,14 @@ public class NetCDF_FloatGrid_3D {
 		}
 		return result;
 	}
-	
-	public float value_at_ij(int i, int j){
+
+	public float value_at_ij(int i, int j) {
 		try {
-			//array = var.read(new int[]{i,j},new int[]{1,1});
-			array = var.read(new int[]{0,i,j},new int[]{1,1,1});
+			if (var.getRank() == 2) {
+				array = var.read(new int[] { i, j }, new int[] { 1, 1 });
+			} else {
+				array = var.read(new int[] { 0, i, j }, new int[] { 1, 1, 1 });
+			}
 			return array.getFloat(0);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -87,12 +102,12 @@ public class NetCDF_FloatGrid_3D {
 		}
 		return Float.NaN;
 	}
-	
-	public float value_at_lonlat(float lon, float lat){
-		int[] idx = lonlat2ij(lon,lat);
-		return value_at_ij(idx[0],idx[1]);
+
+	public float value_at_lonlat(float lon, float lat) {
+		int[] idx = lonlat2ij(lon, lat);
+		return value_at_ij(idx[0], idx[1]);
 	}
-	
+
 	private float[] toJArray(Array arr) {
 		float[] ja;
 		if (arr.getElementType() == Double.TYPE) {
@@ -108,7 +123,7 @@ public class NetCDF_FloatGrid_3D {
 			return (float[]) arr.copyTo1DJavaArray();
 		}
 	}
-	
+
 	private int binary_search(float[] array, float val) {
 		int idx = Arrays.binarySearch(array, val);
 

@@ -70,29 +70,27 @@ public class MakeW_Daily {
 		if (Float.isNaN(du)) {
 			return du;
 		}
-		
 		float dv = dy(vs);
 		if (Float.isNaN(dv)) {
 			return dv;
 		}
-		
+
 		Array[] prj;
-		
+
 		if (reproject) {
 			prj = prj2meters(lons, lats);
 		} else {
 			prj = new Array[] { lons, lats };
 		}
-		
 		double dx0 = prj[0].getDouble(0);
 		double dx1 = prj[0].getDouble((int) prj[0].getSize() - 1);
-		double dx = dx1 - dx0;
-		double dy0 = prj[1].getDouble(1);
+		double dx = (dx1 - dx0) / 2;
+		double dy0 = prj[1].getDouble(0);
 		double dy1 = prj[1].getDouble((int) prj[1].getSize() - 1);
-		double dy = dy1 - dy0;
+		double dy = (dy1 - dy0) / 2;
 		float dudx = du / (float) dx;
 		float dvdy = dv / (float) dy;
-		return dudx + dvdy;
+		return -(dudx + dvdy);
 	}
 	
 	/**

@@ -16,25 +16,25 @@ import utilities.Utils;
  * @author Johnathan Kool
  */
 
-public class GenerateTest {
+public class MakeTest_4D {
 
-	private String outputPath = "C:\\Temp\\Negative_Ones.nc";
+	private String outputPath = "C:\\Temp\\Zeros_n2_u.nc";
 	private String outLatName = "Latitude";
 	private String outLonName = "Longitude";
 	private String outLayerName = "Depth";
 	private String outTimeName = "Time";
-	private String outVarName = "Variable_X";
-	private float minLon = -2;//MNL 142;//IND 30;// SEAX 90;//NZ 160;
-	private float minLat = -2;//MNL -25;// IND -35; // SEAX -20;//NZ -50;
-	private float minZ = -2;
-	private double minTime = 0;//+365+365+365+365+366;// 38250;
-	private float maxLon = 2;//MNL 156;//IND 106;// SEAX 175;//NZ 185;
-	private float maxLat = 2;//MNL -8;//IND 30;// SEAX 40;//NZ -30;
-	private float maxZ = 2;
+	private String outVarName = "u";
+	private float minLon = -10;
+	private float minLat = -10;
+	private float minZ = -1;
+	private double minTime = 0;
+	private float maxLon = 10;
+	private float maxLat = 10;
+	private float maxZ = 0;
 	private double maxTime = 100;
 	
-	private int latdim = 101;
-	private int londim = 101;
+	private int latdim = 21;
+	private int londim = 21;
 	private int zdim = 11;
 	private int tdim = 101;
 
@@ -53,7 +53,7 @@ public class GenerateTest {
 
 		}
 
-		GenerateTest mt = new GenerateTest();
+		MakeTest_4D mt = new MakeTest_4D();
 
 		try {
 			mt.run();
@@ -94,7 +94,7 @@ public class GenerateTest {
 
 		lnr = MatrixUtilities.linspace(minLon,maxLon,londim);
 		ltr = MatrixUtilities.linspace(minLat,maxLat,latdim);
-		dr = MatrixUtilities.linspace(minZ,maxZ,zdim);
+		dr = MatrixUtilities.linspace(maxZ,minZ,zdim);
 		tr = MatrixUtilities.linspace(minTime,maxTime,tdim);
 		
 		// Set up empty arrays for ranges and dimensions.
@@ -133,8 +133,8 @@ public class GenerateTest {
 
 		outfile.addVariableAttribute(outLatName, "units", "degrees_north");
 		outfile.addVariableAttribute(outLonName, "units", "degrees_east");
-		//outfile.addVariableAttribute(outLayerName, "units", "meters");
-		//outfile.addVariableAttribute(outTimeName, "units", "units");
+		outfile.addVariableAttribute(outLayerName, "units", "meters");
+		outfile.addVariableAttribute(outTimeName, "units", "units");
 		
 		// Finalizes the structure of the output file, making the changes real.
 
@@ -148,7 +148,6 @@ public class GenerateTest {
 		outfile.write(outLonName, Array.factory(lnr));
 
 		ArrayDouble A = new ArrayDouble.D4(tdim, zdim, latdim, londim);
-		//ArrayDouble A = new ArrayDouble.D2(latdim, londim);
 		Index idx = A.getIndex();
 		
 		// Loop across the time axis
@@ -173,16 +172,13 @@ public class GenerateTest {
 						//float[] gravity = MatrixUtilities.subtract(n,arr);
 						//val = MatrixUtilities.add(tmp, gravity);
 						//float scale = .00001f/1.11f;
-						A.set(idx.set(t,k,i,j), -1);
+						A.set(idx.set(t,k,i,j), function(t,k,i,j));
 						//A.set(idx.set(t,k,i,j), val[0]);
 						//A.set(idx.set(t,k,i,j), val[1]);
 						//A.set(idx.set(t,k,i,j), dr[k]>=0.5?Float.NaN:dr[k]);
 						//A.set(idx.set(t,k,i,j), dr[k]>=0.5?Float.NaN:-ltr[i]*scale);
-						//A.set(idx.set(i,j), ltr[i]);
 						//A.set(idx.set(t,k,i,j), ct*1E-3);
 						//val = Utils.lonlat2ceqd(new double[]{ltr[i],lnr[j]});
-						//A.set(idx.set(i,j), (float)val[0]);
-						//A.set(idx.set(i,j), ct);
 						//A.set(idx.set(t,k,i,j), lnr[j]);
 						//A.set(idx.set(t,k,i,j), dr[k]>=0.5?Float.NaN:0);
 						ct++;
@@ -192,13 +188,16 @@ public class GenerateTest {
 		}
 
 		outfile.write(outVarName, new int[4], A);
-		//outfile.write(outVarName, new int[2], A);
 
 		// Clean-up duty
 
 		outfile.flush();
 		outfile.finish();
 		outfile.close();
+	}
+	
+	private double function(int t, int k, int i, int j){
+		return j;
 	}
 	
 	// Getters and setters

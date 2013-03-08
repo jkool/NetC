@@ -16,17 +16,16 @@ public class TestMakeW {
 		TestMakeW tmw = new TestMakeW();
 		tmw.setUp();
 		tmw.testGo();
-		System.out.println("Complete");
-		
+		System.out.println("Complete");	
 	}
 	
 	@Before
 	public void setUp(){
 		mw.setReproject(false);
-		mw.setInputUFile("C:/Temp/Linear_X.nc");
-		mw.setInputVFile("C:/Temp/Linear_X.nc");
+		mw.setInputUFile("C:/Temp/Linear_Xn2_u.nc");
+		mw.setInputVFile("C:/Temp/Zeros_n2_v.nc");
+		mw.setInputBathyFile("C:/Temp/Floor2_Negative_1.nc");
 		mw.setOutputWFile("C:/Temp/Test_W.nc");
-		mw.setInputBathyFile("E:/HPC/Modeling/AUS/Input/NetCDF/GLB_depth_2d.nc");
 		mw.setInTimeName("Time");
 		mw.setOutTimeName("Time");
 	}

@@ -11,10 +11,10 @@ import utilities.MatrixUtilities;
 
 public class MakeW {
 
-	public static void main(String[] args) {
-		MakeW mw = new MakeW();
-		mw.go();
-	}
+	// public static void main(String[] args) {
+	// MakeW mw = new MakeW();
+	// mw.go();
+	// }
 	private String inputUFile = "V:/HYCOM/AUS_u_2009_01.nc";
 	private String inputVFile = "V:/HYCOM/AUS_v_2009_01.nc";
 	private String outputWFile = "V:/HYCOM/AUS_w_2009_01.nc";
@@ -35,6 +35,7 @@ public class MakeW {
 	private String outLayerName = "Depth";
 	private String outTimeName = "Time";
 	private String outVarName = "w";
+	private float bathy_cutoff = 1E30f;
 	private boolean reproject = true;
 
 	/**
@@ -50,7 +51,7 @@ public class MakeW {
 	 *            - an Array of v (north-south) velocity values
 	 * @return
 	 */
-	
+
 	private float calcdwdz(Array lats, Array lons, Array us, Array vs) {
 		float du = dx(us);
 		if (Float.isNaN(du)) {
@@ -60,9 +61,9 @@ public class MakeW {
 		if (Float.isNaN(dv)) {
 			return dv;
 		}
-		
+
 		Array[] prj;
-		
+
 		if (reproject) {
 			prj = prj2meters(lons, lats);
 		} else {
@@ -70,35 +71,15 @@ public class MakeW {
 		}
 		double dx0 = prj[0].getDouble(0);
 		double dx1 = prj[0].getDouble((int) prj[0].getSize() - 1);
-		double dx = dx1 - dx0;
-		double dy0 = prj[1].getDouble(1);
+		double dx = (dx1 - dx0) / 2;
+		double dy0 = prj[1].getDouble(0);
 		double dy1 = prj[1].getDouble((int) prj[1].getSize() - 1);
-		double dy = dy1 - dy0;
+		double dy = (dy1 - dy0) / 2;
 		float dudx = du / (float) dx;
 		float dvdy = dv / (float) dy;
-		return dudx + dvdy;
+		return -(dudx + dvdy);
 	}
-	
-	/**
-	 * Calculates the difference in depth
-	 * 
-	 * @param k - the index of the depth layer
-	 * @param mpz - midpoint depth values
-	 * @param maxZ - maximum depth value
-	 * @return
-	 */
 
-	private float calcdz(int k, float[] mpz, float maxZ) {
-		if (maxZ < mpz[k]) {
-			return Float.NaN;
-		}
-		if (k == mpz.length || maxZ < mpz[k+1]) {
-			return maxZ - mpz[k];
-		} else {
-			return mpz[k+1] - mpz[k];
-		}
-	}
-	
 	/**
 	 * Clones the attributes of the input file(s) to the output file
 	 * 
@@ -129,7 +110,7 @@ public class MakeW {
 	 *            - a 3x3 array of numbers
 	 * @return
 	 */
-	
+
 	private float dx(Array arr) {
 		Index idx = Index.factory(arr.getShape());
 		float e = arr.getFloat(idx.set(1, 1));
@@ -150,7 +131,15 @@ public class MakeW {
 		i = Float.isNaN(i) ? 0 : i;
 		return ((c + 2 * f + i) - (a + 2 * d + g)) / 8;
 	}
-	
+
+	/**
+	 * Calculates change in the x direction
+	 * 
+	 * @param arr1
+	 *            , arr2 - 3x3 arrays of numbers
+	 * @return
+	 */
+
 	/**
 	 * Calculates change in the y direction
 	 * 
@@ -179,7 +168,7 @@ public class MakeW {
 		i = Float.isNaN(i) ? 0 : i;
 		return ((g + 2 * h + i) - (a + 2 * b + c)) / 8;
 	}
-	
+
 	/**
 	 * Creates the w file
 	 * 
@@ -287,63 +276,107 @@ public class MakeW {
 			mpz[i] = (float) (depths[i + 1] + depths[i]) / 2;
 		}
 
+		float[] nan = new float[uLayerLength];
+		for (int n = 0; n < uLayerLength; n++) {
+			nan[n] = Float.NaN;
+		}
+
+		// Write the collar as NaNs.
+
+		Array nana = Array.factory(java.lang.Float.class, new int[] { 1,
+				uLayerLength, 1, 1 }, nan);
+		for (int t = 0; t < u.getShape(0); t++) {
+			for (int j = 0; j < u.getShape(3); j++) {
+				outfile.write(outVarName, new int[] { t, 0, 0, j }, nana);
+				outfile.write(outVarName, new int[] { t, 0, u.getShape(2) - 1,
+						j }, nana);
+			}
+			for (int i = 1; i < u.getShape(2) - 1; i++) {
+				outfile.write(outVarName, new int[] { t, 0, i, 0 }, nana);
+				outfile.write(outVarName, new int[] { t, 0, i,
+						u.getShape(3) - 1 }, nana);
+			}
+		}
+
 		// Calculate w values for each time, depth, lat and lon
 		// using 3x3 (horizontal) vertical pencils
 
 		for (int t = 0; t < u.getShape(0); t++) {
-			for (int i = 1; i < u.getShape(2)-1; i++) {
-				for (int j = 1; j < u.getShape(3)-1; j++) {
+			for (int i = 1; i < u.getShape(2) - 1; i++) {
+				Array lta = latdim.read(new int[] { i - 1 }, // move for
+																// speed
+						new int[] { 3 });
+				double currentLat = lta.getDouble(1);
+				for (int j = 1; j < u.getShape(3) - 1; j++) {
 
 					float[] w_arr = new float[uLayerLength];
+
+					if (i == 0 || j == 0 || i == u.getShape(2) - 1
+							|| j == u.getShape(3) - 1) {
+
+						for (int n = 0; n < w_arr.length; n++) {
+							w_arr[n] = Float.NaN;
+						}
+						continue;
+					}
+
+					Array lna = londim.read(new int[] { j - 1 },
+							new int[] { 3 });
+
+					double currentLon = lna.getDouble(1);
+					float minZ = bathy.value_at_lonlat((float) currentLon,
+							(float) currentLat);
+
 					boolean alwaysNaN = true;
 
 					for (int k = u.getShape(1) - 1; k >= 0; k--) {
 
-						if (i == 0 || j == 0 || i == u.getShape(2) - 1
-								|| j == u.getShape(3) - 1) {
+						// If the bathymetry value is beyond the cutoff value
+						// return NaN
+
+						if (minZ > bathy_cutoff) {
 							w_arr[k] = Float.NaN;
-							continue;
-						}
-						
-						if (k == 0) {
-							if(!alwaysNaN){w_arr[k] = 0;}
-							else{w_arr[k] = Float.NaN;}
 							continue;
 						}
 
-						Array lta = latdim.read(new int[] { i - 1 },
-								new int[] { 3 });
-						Array lna = londim.read(new int[] { j - 1 },
-								new int[] { 3 });
-						
-						double currentLat = lta.getDouble(1);
-						double currentLon = lna.getDouble(1);
-						
-						float maxZ = bathy.value_at_lonlat((float) currentLon,
-								(float) currentLat);
-						
-						if (maxZ<depths[k]){
+						// If we're at the top layer, check if all values have
+						// been NaN
+						// If so, write NaN, otherwise, write 0.
+
+						if (k == 0) {
+							if (!alwaysNaN) {
+								w_arr[k] = 0;
+							} else {
+								w_arr[k] = Float.NaN;
+							}
+							continue;
+						}
+
+						if (minZ > mpz[k - 1]) {
 							w_arr[k] = Float.NaN;
-							continue;}
-						
+							continue;
+						}
+
+						// Read the 3x3 u and v kernels
+
 						Array ua = u.read(new int[] { t, k, i - 1, j - 1 },
 								new int[] { 1, 1, 3, 3 }).reduce();
 						Array va = v.read(new int[] { t, k, i - 1, j - 1 },
-								new int[] { 1, 1, 3, 3 }).reduce(); 
-						
-						//float currentLat = latdim.read(new int[] { i },
-						//		new int[] { 1 }).getFloat(0);
-						//float currentLon = londim.read(new int[] { j },
-						//		new int[] { 1 }).getFloat(0);
+								new int[] { 1, 1, 3, 3 }).reduce();
 
-						float dz = calcdz(k, mpz, maxZ);
+						// Calculate the change in z values
 
-						if (Float.isNaN(dz)) {
-							w_arr[k] = dz;
-							continue;
-						}
+						// float dz = calcdz(k, mpz, minZ);
+
+						// if (Float.isNaN(dz)) {
+						// w_arr[k] = dz;
+						// continue;
+						// }
 
 						float dwdz = calcdwdz(lta, lna, ua, va);
+						if (Float.isNaN(dwdz)) {
+							continue;
+						}
 
 						if (alwaysNaN) {
 							w_arr[k] = dwdz;
@@ -356,12 +389,11 @@ public class MakeW {
 							new int[] { 1, uLayerLength, 1, 1 }, w_arr);
 
 					outfile.write(outVarName, new int[] { t, 0, i, j }, warra);
-					System.out.println("\t\tColumn " + j + " complete.");
 				}
 				System.out.println("\tRow " + i + " complete.");
 			}
-			System.out.printf("Time %d of " + (u.getShape(0) - 1)
-					+ " is complete.\n", t);
+			System.out.printf("Time %d of " + (u.getShape(0))
+					+ " is complete.\n", t + 1);
 		}
 	}
 
@@ -384,7 +416,7 @@ public class MakeW {
 
 		System.out.println("Complete.");
 	}
-	
+
 	/**
 	 * Projects the arrays of longitudes and latitudes to a Cylindrical
 	 * Equidistant Projection to bring x,y and z into a uniform coordinate
@@ -415,7 +447,7 @@ public class MakeW {
 		out[1] = lats_prj;
 		return out;
 	}
-	
+
 	/**
 	 * Retrieves the name of the Latitude Variable
 	 * 
@@ -431,7 +463,7 @@ public class MakeW {
 	 * 
 	 * @return
 	 */
-	
+
 	public String getInLayerName() {
 		return inLayerName;
 	}
@@ -441,7 +473,7 @@ public class MakeW {
 	 * 
 	 * @return
 	 */
-	
+
 	public String getInLonName() {
 		return inLonName;
 	}
@@ -451,7 +483,7 @@ public class MakeW {
 	 * 
 	 * @return
 	 */
-	
+
 	public String getInputBathyFile() {
 		return inputBathyFile;
 	}
@@ -461,7 +493,7 @@ public class MakeW {
 	 * 
 	 * @return
 	 */
-	
+
 	public String getInputUFile() {
 		return inputUFile;
 	}
@@ -471,11 +503,11 @@ public class MakeW {
 	 * 
 	 * @return
 	 */
-	
+
 	public String getInputVFile() {
 		return inputVFile;
 	}
-	
+
 	/**
 	 * Retrieves the name of the Time Variable
 	 * 
@@ -491,7 +523,7 @@ public class MakeW {
 	 * 
 	 * @return
 	 */
-	
+
 	public String getInUName() {
 		return inUName;
 	}
@@ -501,11 +533,11 @@ public class MakeW {
 	 * 
 	 * @return
 	 */
-	
+
 	public String getInVName() {
 		return inVName;
 	}
-	
+
 	/**
 	 * Retrieves the name of the output Latitude Variable
 	 * 
@@ -521,7 +553,7 @@ public class MakeW {
 	 * 
 	 * @return
 	 */
-	
+
 	public String getOutLayerName() {
 		return outLayerName;
 	}
@@ -531,11 +563,11 @@ public class MakeW {
 	 * 
 	 * @return
 	 */
-	
+
 	public String getOutLonName() {
 		return outLonName;
 	}
-	
+
 	/**
 	 * Retrieves the name of the output w file
 	 * 
@@ -545,7 +577,7 @@ public class MakeW {
 	public String getOutputWFile() {
 		return outputWFile;
 	}
-	
+
 	/**
 	 * Retrieves the name of the output Time Variable
 	 * 
@@ -561,21 +593,21 @@ public class MakeW {
 	 * 
 	 * @return
 	 */
-	
+
 	public String getOutVarName() {
 		return outVarName;
 	}
-	
+
 	/**
 	 * Sets the name of the input Latitude Variable
 	 * 
 	 * @param inLatName
 	 */
-	
+
 	public void setInLatName(String inLatName) {
 		this.inLatName = inLatName;
 	}
-	
+
 	/**
 	 * Sets the name of the input Depth Variable
 	 * 
@@ -591,7 +623,7 @@ public class MakeW {
 	 * 
 	 * @param inLonName
 	 */
-	
+
 	public void setInLonName(String inLonName) {
 		this.inLonName = inLonName;
 	}
@@ -601,7 +633,7 @@ public class MakeW {
 	 * 
 	 * @param inputBathyFile
 	 */
-	
+
 	public void setInputBathyFile(String inputBathyFile) {
 		this.inputBathyFile = inputBathyFile;
 	}
@@ -611,11 +643,11 @@ public class MakeW {
 	 * 
 	 * @param inputUFile
 	 */
-	
+
 	public void setInputUFile(String inputUFile) {
 		this.inputUFile = inputUFile;
 	}
-	
+
 	/**
 	 * Sets the name of the input v (north-south) velocity file
 	 * 
@@ -625,7 +657,7 @@ public class MakeW {
 	public void setInputVFile(String inputVFile) {
 		this.inputVFile = inputVFile;
 	}
-	
+
 	/**
 	 * Sets the name of the input Time Variable
 	 * 
@@ -635,7 +667,7 @@ public class MakeW {
 	public void setInTimeName(String inTimeName) {
 		this.inTimeName = inTimeName;
 	}
-	
+
 	/**
 	 * Sets the name of the input u (east-west) velocity Variable
 	 * 
@@ -645,7 +677,7 @@ public class MakeW {
 	public void setInUName(String inUName) {
 		this.inUName = inUName;
 	}
-	
+
 	/**
 	 * Sets the name of the input v (north-south) velocity Variable
 	 * 
@@ -661,7 +693,7 @@ public class MakeW {
 	 * 
 	 * @param outLatName
 	 */
-	
+
 	public void setOutLatName(String outLatName) {
 		this.outLatName = outLatName;
 	}
@@ -671,7 +703,7 @@ public class MakeW {
 	 * 
 	 * @param outLayerName
 	 */
-	
+
 	public void setOutLayerName(String outLayerName) {
 		this.outLayerName = outLayerName;
 	}
@@ -681,7 +713,7 @@ public class MakeW {
 	 * 
 	 * @param outLonName
 	 */
-	
+
 	public void setOutLonName(String outLonName) {
 		this.outLonName = outLonName;
 	}
@@ -691,11 +723,11 @@ public class MakeW {
 	 * 
 	 * @param outputWFile
 	 */
-	
+
 	public void setOutputWFile(String outputWFile) {
 		this.outputWFile = outputWFile;
 	}
-	
+
 	/**
 	 * Sets the name of the output Time Variable
 	 * 
@@ -705,7 +737,7 @@ public class MakeW {
 	public void setOutTimeName(String outTimeName) {
 		this.outTimeName = outTimeName;
 	}
-	
+
 	/**
 	 * Sets the name of the output Variable
 	 * 
@@ -715,15 +747,15 @@ public class MakeW {
 	public void setOutVarName(String outVarName) {
 		this.outVarName = outVarName;
 	}
-	
+
 	/**
-	 * Sets whether the data should be re-projected when
-	 * calculating the velocity values
+	 * Sets whether the data should be re-projected when calculating the
+	 * velocity values
 	 * 
 	 * @param reproject
 	 */
-	
-	public void setReproject(boolean reproject){
+
+	public void setReproject(boolean reproject) {
 		this.reproject = reproject;
 	}
 }
