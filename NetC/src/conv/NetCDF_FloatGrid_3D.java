@@ -18,7 +18,7 @@ public class NetCDF_FloatGrid_3D {
 	private String latName = "Latitude";
 	private String lonName = "Longitude";
 	private float[] lats, lons;
-	private Array array;
+	private Array array, latarr, lonarr;
 
 	public NetCDF_FloatGrid_3D(String fileName) {
 
@@ -31,6 +31,33 @@ public class NetCDF_FloatGrid_3D {
 		var = file.findVariable(variableName);
 		latvar = file.findVariable(latName);
 		lonvar = file.findVariable(lonName);
+		
+		int[] shp = latvar.getShape();
+		
+		try {
+			if (latvar.getRank() == 2) {
+				latarr = latvar.read(new int[] { 0, 0 },
+						new int[] { shp[0], 1 });
+			} else {
+				latarr = latvar.read(new int[] { 0 }, new int[] { shp[0] });
+			}
+			lats = toJArray(latarr);
+
+			if (lonvar.getRank() == 2) {
+				lonarr = lonvar.read(new int[] { 0, 0 }, new int[] { 1,
+						shp[1] });
+			} else {
+				lonarr = lonvar.read(new int[] { 0 },
+						new int[] { lonvar.getShape()[0] });
+			}
+			lons = toJArray(lonarr);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidRangeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	public NetCDF_FloatGrid_3D(String fileName, String latName, String lonName) {
@@ -41,20 +68,15 @@ public class NetCDF_FloatGrid_3D {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 		this.latName = latName;
 		this.lonName = lonName;
 		var = file.findVariable(variableName);
 		latvar = file.findVariable(latName);
 		lonvar = file.findVariable(lonName);
-	}
-
-	public int[] lonlat2ij(float lon, float lat) {
-
-		int[] result = new int[] { -1, -1 };
-
+		int[] shp = latvar.getShape();
+		
 		try {
-			int[] shp = latvar.getShape();
-			Array latarr;
 			if (latvar.getRank() == 2) {
 				latarr = latvar.read(new int[] { 0, 0 },
 						new int[] { shp[0], 1 });
@@ -62,19 +84,15 @@ public class NetCDF_FloatGrid_3D {
 				latarr = latvar.read(new int[] { 0 }, new int[] { shp[0] });
 			}
 			lats = toJArray(latarr);
-			result[0] = binary_search(lats, lat);
 
-			Array lonarr;
 			if (lonvar.getRank() == 2) {
-				lonarr = lonvar.read(new int[] { result[0], 0 }, new int[] { 1,
+				lonarr = lonvar.read(new int[] { 0, 0 }, new int[] { 1,
 						shp[1] });
 			} else {
 				lonarr = lonvar.read(new int[] { 0 },
 						new int[] { lonvar.getShape()[0] });
 			}
 			lons = toJArray(lonarr);
-			result[1] = binary_search(lons, lon < lons[0] ? lon + 360 : lon);
-
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -82,6 +100,17 @@ public class NetCDF_FloatGrid_3D {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+
+	// With single dimension lat and lon, this only needs to be done once.!!!!!  ALso check for land zeroes and convert to NaN.
+	
+	public int[] lonlat2ij(float lon, float lat) {
+
+		int[] result = new int[] { -1, -1 };
+
+		result[0] = binary_search(lats, lat);	
+		result[1] = binary_search(lons, lon < lons[0] ? lon + 360 : lon);
+
 		return result;
 	}
 

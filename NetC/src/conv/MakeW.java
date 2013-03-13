@@ -15,11 +15,11 @@ public class MakeW {
 	// MakeW mw = new MakeW();
 	// mw.go();
 	// }
-	private String inputUFile = "V:/HYCOM/AUS_u_2009_01.nc";
-	private String inputVFile = "V:/HYCOM/AUS_v_2009_01.nc";
-	private String outputWFile = "V:/HYCOM/AUS_w_2009_01.nc";
+	private String inputUFile = "D:/HYCOM/Blocks/2008_12_30_to_2009_01_29_tmp_u.nc";
+	private String inputVFile = "D:/HYCOM/Blocks/2008_12_30_to_2009_01_29_tmp_v.nc";
+	private String outputWFile = "D:/HYCOM/Blocks/2008_12_30_to_2009_01_29_tmp_w.nc";
 
-	private String inputBathyFile = " E:/HPC/Modeling/AUS/Input/NetCDF/GLB_depth_2d.nc";
+	private String inputBathyFile = "D:/Modelling/AUS/Input/NetCDF/GLB_depth_2d.nc";
 	private ArrayList<Dimension> dims;
 	private NetcdfFileWriteable outfile;
 	private NetcdfDataset uFile, vFile;
@@ -27,7 +27,7 @@ public class MakeW {
 	private String inLatName = "Latitude";
 	private String inLonName = "Longitude";
 	private String inLayerName = "Depth";
-	private String inTimeName = "MT";
+	private String inTimeName = "Time";
 	private String inUName = "u";
 	private String inVName = "v";
 	private String outLatName = inLatName;
@@ -324,7 +324,7 @@ public class MakeW {
 							new int[] { 3 });
 
 					double currentLon = lna.getDouble(1);
-					float minZ = bathy.value_at_lonlat((float) currentLon,
+					float minZ = -bathy.value_at_lonlat((float) currentLon,
 							(float) currentLat);
 
 					boolean alwaysNaN = true;
@@ -364,17 +364,9 @@ public class MakeW {
 						Array va = v.read(new int[] { t, k, i - 1, j - 1 },
 								new int[] { 1, 1, 3, 3 }).reduce();
 
-						// Calculate the change in z values
-
-						// float dz = calcdz(k, mpz, minZ);
-
-						// if (Float.isNaN(dz)) {
-						// w_arr[k] = dz;
-						// continue;
-						// }
-
 						float dwdz = calcdwdz(lta, lna, ua, va);
 						if (Float.isNaN(dwdz)) {
+							w_arr[k] = Float.NaN;
 							continue;
 						}
 

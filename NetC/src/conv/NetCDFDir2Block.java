@@ -25,8 +25,8 @@ import ucar.nc2.Variable;
 public class NetCDFDir2Block {
 
 	private double maxFileSize = 4E9;
-	private String fileDir = "V:/Data/HYCOM";
-	private String inVarName = "w";
+	private String fileDir = "D:/HYCOM";
+	private String inVarName = "v";
 	private String inHorizontalDim = "X";
 	private String inVerticalDim = "Y";
 	private String inTimeName = "MT";
@@ -38,7 +38,7 @@ public class NetCDFDir2Block {
 	private String outLatName = inLatName;
 	private String outLonName = inLonName;
 	private String outVarName = inVarName;
-	private String outputDir = "V:/Data/HYCOM/Blocks";
+	private String outputDir = "D:/HYCOM/Blocks";
 	private DateFormat df = new SimpleDateFormat("yyyy_MM_dd");
 	private FilenameFilter filter = new FilenamePatternFilter(".*_["
 			+ inVarName + "]_.*\\.nc");
