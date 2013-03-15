@@ -284,6 +284,12 @@ public class NetCDFDir2Block {
 			e.printStackTrace();
 		}
 	}
+	
+	/**
+	 * Closes the output file
+	 * 
+	 * @param ncf_out
+	 */
 
 	private void close(NetcdfFileWriteable ncf_out) {
 		if (ncf_out != null) {
@@ -295,6 +301,15 @@ public class NetCDFDir2Block {
 			}
 		}
 	}
+	
+	/**
+	 * Clones the attributes of one NetCDF file into another.
+	 * 
+	 * @param infile - The source NetCDF file
+	 * @param inVarName - The variable name to be copied
+	 * @param outfile - The destination NetCDF file
+	 * @param outVarName - The output variable name
+	 */
 
 	private void cloneAttributes(NetcdfFile infile, String inVarName,
 			NetcdfFileWriteable outfile, String outVarName) {
@@ -341,6 +356,15 @@ public class NetCDFDir2Block {
 		}
 		return outmap;
 	}
+	
+	/**
+	 * Selects netCDF files after a given point in time (in Java milliseconds)
+	 * 
+	 * @param from - the time in milliseconds 
+	 * @param map - the map from which files will be selected with associated time
+	 * values as keys.
+	 * @return
+	 */
 
 	private TreeMap<Long, NetcdfFile> selectAfter(long from,
 			Map<Long, NetcdfFile> map) {
@@ -354,6 +378,12 @@ public class NetCDFDir2Block {
 		}
 		return outmap;
 	}
+	
+	/**
+	 * Creates an array of ones of arbitrary length
+	 * @param length
+	 * @return
+	 */
 
 	private int[] ones(int length) {
 		int[] out = new int[length];

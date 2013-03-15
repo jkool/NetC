@@ -68,6 +68,12 @@ public class NetCDFDir {
 	public String gettName() {
 		return tName;
 	}
+	
+	/**
+	 * Sets the name of the Time variable
+	 * 
+	 * @param tName
+	 */
 
 	public void settName(String tName) {
 		this.tName = tName;

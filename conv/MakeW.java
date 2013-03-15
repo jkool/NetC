@@ -19,11 +19,9 @@ public class MakeW {
 	private String inputVFile = "D:/HYCOM/Blocks/2008_12_30_to_2009_01_29_tmp_v.nc";
 	private String outputWFile = "D:/HYCOM/Blocks/2008_12_30_to_2009_01_29_tmp_w.nc";
 
-	private String inputBathyFile = "D:/Modelling/AUS/Input/NetCDF/GLB_depth_2d.nc";
 	private ArrayList<Dimension> dims;
-	private NetcdfFileWriteable outfile;
+	private NetcdfFileWriteable wfile;
 	private NetcdfDataset uFile, vFile;
-	private NetCDF_FloatGrid_3D bathy;
 	private String inLatName = "Latitude";
 	private String inLonName = "Longitude";
 	private String inLayerName = "Depth";
@@ -35,7 +33,6 @@ public class MakeW {
 	private String outLayerName = "Depth";
 	private String outTimeName = "Time";
 	private String outVarName = "w";
-	private float bathy_cutoff = 1E30f;
 	private boolean reproject = true;
 
 	/**
@@ -52,7 +49,7 @@ public class MakeW {
 	 * @return
 	 */
 
-	private float calcdwdz(Array lats, Array lons, Array us, Array vs) {
+	public float calcdwdz(Array lats, Array lons, Array us, Array vs) {
 		float du = dx(us);
 		if (Float.isNaN(du)) {
 			return du;
@@ -69,15 +66,13 @@ public class MakeW {
 		} else {
 			prj = new Array[] { lons, lats };
 		}
-		double dx0 = prj[0].getDouble(0);
-		double dx1 = prj[0].getDouble((int) prj[0].getSize() - 1);
-		double dx = (dx1 - dx0) / 2;
-		double dy0 = prj[1].getDouble(0);
-		double dy1 = prj[1].getDouble((int) prj[1].getSize() - 1);
-		double dy = (dy1 - dy0) / 2;
+
+		float dx = dx(prj[1]);
+		float dy = dy(prj[0]);
 		float dudx = du / (float) dx;
 		float dvdy = dv / (float) dy;
-		return -(dudx + dvdy);
+		float out = -(dudx + dvdy);
+		return out==-0.0f?0.0f:out;
 	}
 
 	/**
@@ -111,12 +106,18 @@ public class MakeW {
 	 * @return
 	 */
 
-	private float dx(Array arr) {
+	public float dx(Array arr) {
 		Index idx = Index.factory(arr.getShape());
-		float e = arr.getFloat(idx.set(1, 1));
+		
+		float e = arr.getFloat((int) arr.getSize()/2);
 		if (Float.isNaN(e)) {
 			return Float.NaN;
 		}
+		
+		if(arr.getSize()==3){
+			return ((arr.getFloat(2)-arr.getFloat(0))/2);
+		}
+		
 		float a = arr.getFloat(idx.set(0, 0));
 		float c = arr.getFloat(idx.set(0, 2));
 		float d = arr.getFloat(idx.set(1, 0));
@@ -148,12 +149,18 @@ public class MakeW {
 	 * @return
 	 */
 
-	private float dy(Array arr) {
+	public float dy(Array arr) {
 		Index idx = Index.factory(arr.getShape());
-		float e = arr.getFloat(idx.set(1, 1));
+		
+		float e = arr.getFloat((int) arr.getSize()/2);
 		if (Float.isNaN(e)) {
 			return Float.NaN;
 		}
+		
+		if(arr.getSize()==3){
+			return ((arr.getFloat(2)-arr.getFloat(0))/2);
+		}
+		
 		float a = arr.getFloat(idx.set(0, 0));
 		float b = arr.getFloat(idx.set(0, 1));
 		float c = arr.getFloat(idx.set(0, 2));
@@ -180,7 +187,7 @@ public class MakeW {
 	 * @throws IOException
 	 */
 
-	private void generate(NetcdfDataset uFile, NetcdfDataset vFile)
+	public NetcdfDataset generate(NetcdfDataset uFile, NetcdfDataset vFile)
 			throws InvalidRangeException, IOException {
 
 		// Set up empty arrays for ranges and dimensions.
@@ -189,7 +196,7 @@ public class MakeW {
 
 		// Create the output file
 
-		outfile = NetcdfFileWriteable.createNew(outputWFile, false);
+		wfile = NetcdfFileWriteable.createNew(outputWFile, false);
 
 		// Construct the data set dimensions - Time, Depth, Latitude and
 		// Longitude (in order)
@@ -204,13 +211,13 @@ public class MakeW {
 		int vLatLength = vFile.findVariable(inLatName).getShape()[0];
 		int vLonLength = vFile.findVariable(inLonName).getShape()[0];
 
-		Dimension timeDim = outfile.addDimension(outTimeName,
+		Dimension timeDim = wfile.addDimension(outTimeName,
 				Math.min(uTimeLength, vTimeLength));
-		Dimension layerDim = outfile.addDimension(outLayerName,
+		Dimension layerDim = wfile.addDimension(outLayerName,
 				Math.min(uLayerLength, vLayerLength));
-		Dimension latDim = outfile.addDimension(outLatName,
+		Dimension latDim = wfile.addDimension(outLatName,
 				Math.min(uLatLength, vLatLength));
-		Dimension lonDim = outfile.addDimension(outLonName,
+		Dimension lonDim = wfile.addDimension(outLonName,
 				Math.min(uLonLength, vLonLength));
 
 		// Add to a list - this becomes the coordinate system for the output
@@ -223,80 +230,45 @@ public class MakeW {
 
 		// Create variables in the output file
 
-		outfile.addVariable(outTimeName, DataType.DOUBLE,
+		wfile.addVariable(outTimeName, DataType.DOUBLE,
 				new Dimension[] { timeDim });
-		outfile.addVariable(outLayerName, DataType.DOUBLE,
+		wfile.addVariable(outLayerName, DataType.DOUBLE,
 				new Dimension[] { layerDim });
-		outfile.addVariable(outLatName, DataType.DOUBLE,
+		wfile.addVariable(outLatName, DataType.DOUBLE,
 				new Dimension[] { latDim });
-		outfile.addVariable(outLonName, DataType.DOUBLE,
+		wfile.addVariable(outLonName, DataType.DOUBLE,
 				new Dimension[] { lonDim });
 
 		// outfile.setLargeFile(true);
-		outfile.addVariable(outVarName, DataType.FLOAT, dims);
+		wfile.addVariable(outVarName, DataType.FLOAT, dims);
 
 		// Add attribute information (cloned from source)
 
-		cloneAttributes(uFile, inTimeName, outfile, outTimeName);
-		cloneAttributes(uFile, inLayerName, outfile, outLayerName);
-		cloneAttributes(uFile, inLatName, outfile, outLatName);
-		cloneAttributes(uFile, inLonName, outfile, outLonName);
+		cloneAttributes(uFile, inTimeName, wfile, outTimeName);
+		cloneAttributes(uFile, inLayerName, wfile, outLayerName);
+		cloneAttributes(uFile, inLatName, wfile, outLatName);
+		cloneAttributes(uFile, inLonName, wfile, outLonName);
 
 		// Finalizes the structure of the output file, making the changes real.
 
-		outfile.create();
+		wfile.create();
 
 		// Write the static information for 1D axes.
 
-		outfile.write(outTimeName, uFile.findVariable(inTimeName).read());
-		outfile.write(outLayerName, uFile.findVariable(inLayerName).read());
-		outfile.write(outLatName, uFile.findVariable(inLatName).read());
-		outfile.write(outLonName, uFile.findVariable(inLonName).read());
+		wfile.write(outTimeName, uFile.findVariable(inTimeName).read());
+		wfile.write(outLayerName, uFile.findVariable(inLayerName).read());
+		wfile.write(outLatName, uFile.findVariable(inLatName).read());
+		wfile.write(outLonName, uFile.findVariable(inLonName).read());
 
 		Variable u = uFile.findVariable(inUName);
 		Variable v = vFile.findVariable(inVName);
 
 		Variable latdim = uFile.findVariable(inLatName);
 		Variable londim = uFile.findVariable(inLonName);
-		Variable zdim = uFile.findVariable(inLayerName);
-
-		// Read the depth array
-
-		Array depth_array = zdim.read(new int[] { 0 },
-				new int[] { uLayerLength });
-		double[] depths = (double[]) depth_array.copyTo1DJavaArray();
-
-		// Determine the size and midpoint of the depth bins
-
-		double[] binz = new double[depths.length - 1];
-		float[] mpz = new float[depths.length - 1];
-
-		for (int i = 0; i < depths.length - 1; i++) {
-			binz[i] = depths[i + 1] - depths[i];
-			mpz[i] = (float) (depths[i + 1] + depths[i]) / 2;
-		}
-
-		float[] nan = new float[uLayerLength];
-		for (int n = 0; n < uLayerLength; n++) {
-			nan[n] = Float.NaN;
-		}
-
+		
 		// Write the collar as NaNs.
 
-		Array nana = Array.factory(java.lang.Float.class, new int[] { 1,
-				uLayerLength, 1, 1 }, nan);
-		for (int t = 0; t < u.getShape(0); t++) {
-			for (int j = 0; j < u.getShape(3); j++) {
-				outfile.write(outVarName, new int[] { t, 0, 0, j }, nana);
-				outfile.write(outVarName, new int[] { t, 0, u.getShape(2) - 1,
-						j }, nana);
-			}
-			for (int i = 1; i < u.getShape(2) - 1; i++) {
-				outfile.write(outVarName, new int[] { t, 0, i, 0 }, nana);
-				outfile.write(outVarName, new int[] { t, 0, i,
-						u.getShape(3) - 1 }, nana);
-			}
-		}
+		writeCollar(uLayerLength, u.getShape());
 
 		// Calculate w values for each time, depth, lat and lon
 		// using 3x3 (horizontal) vertical pencils
@@ -306,87 +278,77 @@ public class MakeW {
 				Array lta = latdim.read(new int[] { i - 1 }, // move for
 																// speed
 						new int[] { 3 });
-				double currentLat = lta.getDouble(1);
 				for (int j = 1; j < u.getShape(3) - 1; j++) {
-
-					float[] w_arr = new float[uLayerLength];
-
-					if (i == 0 || j == 0 || i == u.getShape(2) - 1
-							|| j == u.getShape(3) - 1) {
-
-						for (int n = 0; n < w_arr.length; n++) {
-							w_arr[n] = Float.NaN;
-						}
-						continue;
-					}
 
 					Array lna = londim.read(new int[] { j - 1 },
 							new int[] { 3 });
+					
+					Array uarr = u.read(new int[]{t,0,i-1,j-1}, new int[]{1,u.getShape()[1],3,3});
+					Array varr = v.read(new int[]{t,0,i-1,j-1}, new int[]{1,u.getShape()[1],3,3});
 
-					double currentLon = lna.getDouble(1);
-					float minZ = -bathy.value_at_lonlat((float) currentLon,
-							(float) currentLat);
+					float[] w_arr = integrate(uarr, varr, lna, lta);
 
-					boolean alwaysNaN = true;
-
-					for (int k = u.getShape(1) - 1; k >= 0; k--) {
-
-						// If the bathymetry value is beyond the cutoff value
-						// return NaN
-
-						if (minZ > bathy_cutoff) {
-							w_arr[k] = Float.NaN;
-							continue;
-						}
-
-						// If we're at the top layer, check if all values have
-						// been NaN
-						// If so, write NaN, otherwise, write 0.
-
-						if (k == 0) {
-							if (!alwaysNaN) {
-								w_arr[k] = 0;
-							} else {
-								w_arr[k] = Float.NaN;
-							}
-							continue;
-						}
-
-						if (minZ > mpz[k - 1]) {
-							w_arr[k] = Float.NaN;
-							continue;
-						}
-
-						// Read the 3x3 u and v kernels
-
-						Array ua = u.read(new int[] { t, k, i - 1, j - 1 },
-								new int[] { 1, 1, 3, 3 }).reduce();
-						Array va = v.read(new int[] { t, k, i - 1, j - 1 },
-								new int[] { 1, 1, 3, 3 }).reduce();
-
-						float dwdz = calcdwdz(lta, lna, ua, va);
-						if (Float.isNaN(dwdz)) {
-							w_arr[k] = Float.NaN;
-							continue;
-						}
-
-						if (alwaysNaN) {
-							w_arr[k] = dwdz;
-							alwaysNaN = false;
-						} else {
-							w_arr[k] = w_arr[k + 1] + dwdz;
-						}
-					}
 					Array warra = Array.factory(java.lang.Float.class,
 							new int[] { 1, uLayerLength, 1, 1 }, w_arr);
 
-					outfile.write(outVarName, new int[] { t, 0, i, j }, warra);
+					wfile.write(outVarName, new int[] { t, 0, i, j }, warra);
 				}
 				System.out.println("\tRow " + i + " complete.");
 			}
 			System.out.printf("Time %d of " + (u.getShape(0))
 					+ " is complete.\n", t + 1);
 		}
+		return new NetcdfDataset(wfile);
+	}
+
+	
+	public float[] integrate(Array u, Array v, Array lons, Array lats) {
+		
+		int zdim = u.getShape()[1];
+		float[] w_arr = new float[zdim];
+		boolean alwaysNaN = true;
+
+		for (int k = zdim - 1; k >= 0; k--) {
+
+			// If we're at the top layer, check if all values have
+			// been NaN. If so, write NaN, otherwise, write 0.
+
+			if (k == 0) {
+				if (!alwaysNaN) {
+					w_arr[k] = 0;
+				} else {
+					w_arr[k] = Float.NaN;
+				}
+				continue;
+			}
+
+			// Read the 3x3 u and v kernels
+
+			Array ua = null;
+			Array va = null;		
+			
+			try {
+				ua = u.section(new int[]{0,k,0,0}, new int[]{1,1,3,3});
+				va = v.section(new int[]{0,k,0,0}, new int[]{1,1,3,3});
+			} catch (InvalidRangeException e) {
+				e.printStackTrace();
+			}
+
+			float dwdz = calcdwdz(lats, lons, ua, va);
+
+			if (Float.isNaN(dwdz)) {
+				w_arr[k] = Float.NaN;
+				continue;
+			}
+
+			if (alwaysNaN) {
+				w_arr[k] = dwdz;
+				alwaysNaN = false;
+			} else {
+				w_arr[k] = w_arr[k + 1] + dwdz;
+			}
+		}
+		return w_arr;
 	}
 
 	public void go() {
@@ -396,8 +358,6 @@ public class MakeW {
 		try {
 			uFile = NetcdfDataset.openDataset(inputUFile);
 			vFile = NetcdfDataset.openDataset(inputVFile);
-			bathy = new NetCDF_FloatGrid_3D(inputBathyFile, inLatName,
-					inLonName);
 			generate(uFile, vFile);
 
 		} catch (IOException e) {
@@ -407,6 +367,36 @@ public class MakeW {
 		}
 
 		System.out.println("Complete.");
+	}
+
+	public void writeCollar(int layerLength, int[] shape) {
+
+		float[] nan = new float[layerLength];
+		for (int n = 0; n < layerLength; n++) {
+			nan[n] = Float.NaN;
+		}
+
+		Array nana = Array.factory(java.lang.Float.class, new int[] { 1,
+				layerLength, 1, 1 }, nan);
+		
+		try {
+			for (int t = 0; t < shape[0]; t++) {
+				for (int j = 0; j < shape[3]; j++) {
+					wfile.write(outVarName, new int[] { t, 0, 0, j }, nana);
+					wfile.write(outVarName, new int[] { t, 0, shape[2] - 1, j },
+							nana);
+				}
+				for (int i = 1; i < shape[2] - 1; i++) {
+					wfile.write(outVarName, new int[] { t, 0, i, 0 }, nana);
+					wfile.write(outVarName, new int[] { t, 0, i, shape[3] - 1 },
+							nana);
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InvalidRangeException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -468,16 +458,6 @@ public class MakeW {
 
 	public String getInLonName() {
 		return inLonName;
-	}
-
-	/**
-	 * Retrieves the name of the bathymetry file used as a boundary.
-	 * 
-	 * @return
-	 */
-
-	public String getInputBathyFile() {
-		return inputBathyFile;
 	}
 
 	/**
@@ -621,16 +601,6 @@ public class MakeW {
 	}
 
 	/**
-	 * Sets the name of the input bathymetry file
-	 * 
-	 * @param inputBathyFile
-	 */
-
-	public void setInputBathyFile(String inputBathyFile) {
-		this.inputBathyFile = inputBathyFile;
-	}
-
-	/**
 	 * Sets the name of the input u (east-west) velocity file
 	 * 
 	 * @param inputUFile
@@ -739,13 +709,6 @@ public class MakeW {
 	public void setOutVarName(String outVarName) {
 		this.outVarName = outVarName;
 	}
-
-	/**
-	 * Sets whether the data should be re-projected when calculating the
-	 * velocity values
-	 * 
-	 * @param reproject
-	 */
 
 	public void setReproject(boolean reproject) {
 		this.reproject = reproject;

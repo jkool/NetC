@@ -18,7 +18,7 @@ import utilities.MatrixUtilities;
 
 public class MakeTest_2D {
 
-	private String outputPath = "C:\\Temp\\Floor2_Negative_1.nc";
+	private String outputPath = "C:\\Temp\\Floor_increasing_x_slope.nc";
 	private String outLatName = "Latitude";
 	private String outLonName = "Longitude";
 	private String outVarName = "bathymetry";
@@ -157,7 +157,7 @@ public class MakeTest_2D {
 	// Getters and setters
 	
 	public double function(int i, int j){
-		return -1;
+		return -1+((double)j/21d);
 	}
 	
 	public String getOutputPath() {

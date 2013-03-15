@@ -18,12 +18,12 @@ import utilities.MatrixUtilities;
 
 public class MakeTest_4D {
 
-	private String outputPath = "C:\\Temp\\Zeros_n2_u.nc";
+	private String outputPath = "C:\\Temp\\Zeros_21_v.nc";
 	private String outLatName = "Latitude";
 	private String outLonName = "Longitude";
 	private String outLayerName = "Depth";
 	private String outTimeName = "Time";
-	private String outVarName = "u";
+	private String outVarName = "v";
 	private float minLon = -10;
 	private float minLat = -10;
 	private float minZ = -1;
@@ -35,7 +35,7 @@ public class MakeTest_4D {
 	
 	private int latdim = 21;
 	private int londim = 21;
-	private int zdim = 11;
+	private int zdim = 21;
 	private int tdim = 101;
 
 	private float[] ltr, lnr, dr;
@@ -197,7 +197,8 @@ public class MakeTest_4D {
 	}
 	
 	private double function(int t, int k, int i, int j){
-		return j;
+		//if((20-j)<k){return Double.NaN;}return 1;
+		return 0;
 	}
 	
 	// Getters and setters
