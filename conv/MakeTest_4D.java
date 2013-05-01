@@ -8,7 +8,6 @@ import ucar.ma2.*;
 import ucar.nc2.*;
 import ucar.nc2.dataset.NetcdfDataset;
 import utilities.MatrixUtilities;
-//import utilities.Utils;
 
 /**
  * Extracts information from HYCOM using a network connection.

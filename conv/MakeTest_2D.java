@@ -8,7 +8,6 @@ import ucar.ma2.*;
 import ucar.nc2.*;
 import ucar.nc2.dataset.NetcdfDataset;
 import utilities.MatrixUtilities;
-//import utilities.Utils;
 
 /**
  * Extracts information from HYCOM using a network connection.
@@ -157,7 +156,8 @@ public class MakeTest_2D {
 	// Getters and setters
 	
 	public double function(int i, int j){
-		return -1+((double)j/21d);
+		//return -1+((double)j/21d);
+		return Math.max((i-10.5)*(i-10.5), (j-10.5)*(j-10.5));
 	}
 	
 	public String getOutputPath() {
