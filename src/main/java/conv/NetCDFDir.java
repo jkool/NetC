@@ -14,16 +14,14 @@ import ucar.nc2.Variable;
 public class NetCDFDir {
 
 	private Map<Long, NetcdfFile> files = new TreeMap<Long, NetcdfFile>();
-	private String tName = "time";
+	private String tName = "MT";
 	
 	public NetCDFDir(String s){
-		this(s,new FilenamePatternFilter(".*"), "time");
+		this(s,new FilenamePatternFilter(".*"));
 	}
 
-	public NetCDFDir(String s, FilenameFilter filter, String tName) {
+	public NetCDFDir(String s, FilenameFilter filter) {
 
-		
-		this.tName = tName;
 		File[] fa = new File(s).listFiles(filter);
 
 		try {
@@ -42,8 +40,8 @@ public class NetCDFDir {
 
 				long[] minmax = new long[2];
 
-				minmax[0] = TimeConvert.HYCOM_RToMillis((long) ja[0]);
-				minmax[1] = TimeConvert.HYCOM_RToMillis((long) ja[ja.length - 1]);
+				minmax[0] = TimeConvert.HYCOMToMillis((long) ja[0]);
+				minmax[1] = TimeConvert.HYCOMToMillis((long) ja[ja.length - 1]);
 
 				// Put into an index linking start time with the associated file
 

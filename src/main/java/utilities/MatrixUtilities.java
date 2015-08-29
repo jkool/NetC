@@ -1,12 +1,19 @@
 package utilities;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.LineNumberReader;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.Arrays;
+import java.util.StringTokenizer;
 
-import cern.colt.matrix.*;
-import cern.colt.matrix.impl.*;
-import cern.jet.random.*;
+import cern.colt.matrix.DoubleMatrix1D;
+import cern.colt.matrix.impl.DenseDoubleMatrix1D;
+import cern.jet.random.Uniform;
 
 /**
  * <p>
@@ -15,12 +22,6 @@ import cern.jet.random.*;
  * <p>
  * Description: A collection of methods for creating and manipulating matrices
  * of primitives.
- * </p>
- * <p>
- * Copyright: Copyright (c) 2005
- * </p>
- * <p>
- * Company: RSMAS, University of Miami
  * </p>
  * 
  * @author Johnathan Kool
@@ -1173,7 +1174,7 @@ public class MatrixUtilities {
 	 * Load a vector from a file
 	 * 
 	 * @param f -
-	 *            Thefile object containing the vector.
+	 *            The file object containing the vector.
 	 * @return - An integer array containing the values from the file
 	 */
 
@@ -1181,39 +1182,49 @@ public class MatrixUtilities {
 
 		String ln;
 		int[] out = new int[0];
+		
+		
+			FileReader fr = null;
+			try {
+				fr = new FileReader(f);
+			} catch (FileNotFoundException e1) {
+				e1.printStackTrace();
+			}
+			
+			try (LineNumberReader lnr = new LineNumberReader(fr)) {
 
-		try {
-			FileReader fr = new FileReader(f);
-			LineNumberReader lnr = new LineNumberReader(fr);
-
-			ln = lnr.readLine();
-
-			while (ln != null) {
-
-				out = new int[lnr.getLineNumber()];
 				ln = lnr.readLine();
 
+				while (ln != null) {
+
+					out = new int[lnr.getLineNumber()];
+					ln = lnr.readLine();
+
+				}
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 
-			fr = new FileReader(f);
-			BufferedReader br = new BufferedReader(fr);
+			try (BufferedReader br = new BufferedReader(new FileReader(f))){
 
-			ln = br.readLine();
-			int count = 0;
-
-			while (ln != null) {
-
-				out[count] = Integer.parseInt(ln);
 				ln = br.readLine();
-				count++;
+				int count = 0;
+
+				while (ln != null) {
+
+					out[count] = Integer.parseInt(ln);
+					ln = br.readLine();
+					count++;
+				}
+			} catch (NumberFormatException e) {
+				e.printStackTrace();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-
-			br.close();
-			fr.close();
-
-		} catch (FileNotFoundException ex) {
-		} catch (IOException ex) {
-		}
 
 		return out;
 
@@ -1303,14 +1314,8 @@ public class MatrixUtilities {
 	public static double[][] loadASCIIMatrix(File file) {
 
 		double[][] matrix = null;
-		
-		FileReader fr = null;
-		BufferedReader b = null;
 
-		try {
-
-			fr = new FileReader(file);
-			b = new BufferedReader(fr);
+		try (BufferedReader b = new BufferedReader(new FileReader(file))) {
 
 			String rl = b.readLine();
 
@@ -1363,19 +1368,6 @@ public class MatrixUtilities {
 					.println("Exception occurred when reading the file.  Exiting.");
 			System.exit(-1);
 
-		} finally{
-			try {
-				if(fr!=null){
-					fr.close();
-				}
-			} catch (IOException e) {
-			}
-			try {
-				if(b!=null){
-					b.close();
-				}
-			} catch (IOException e) {
-			}
 		}
 
 		return matrix;
@@ -1720,7 +1712,6 @@ public class MatrixUtilities {
 			pw.close();
 			
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}	
 	}
@@ -2429,8 +2420,7 @@ public class MatrixUtilities {
 
 	public static void writeToFile(double[][] matrix, String destination) {
 
-		try {
-			PrintWriter pw = new PrintWriter(destination);
+		try (PrintWriter pw = new PrintWriter(destination);) {
 			StringBuffer strbf = new StringBuffer();
 
 			for (int i = 0; i < matrix.length; i++) {

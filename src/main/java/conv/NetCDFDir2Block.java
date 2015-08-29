@@ -25,11 +25,11 @@ import ucar.nc2.Variable;
 public class NetCDFDir2Block {
 
 	private double maxFileSize = 4E9;
-	private String fileDir = "G:/GOM";
-	private String inVarName = "w_velocity";
-	private String inHorizontalDim = "Longitude";
-	private String inVerticalDim = "Latitude";
-	private String inTimeName = "time";
+	private String fileDir = "D:/HYCOM";
+	private String inVarName = "v";
+	private String inHorizontalDim = "X";
+	private String inVerticalDim = "Y";
+	private String inTimeName = "MT";
 	private String inDepthName = "Depth";
 	private String inLatName = "Latitude";
 	private String inLonName = "Longitude";
@@ -38,11 +38,11 @@ public class NetCDFDir2Block {
 	private String outLatName = inLatName;
 	private String outLonName = inLonName;
 	private String outVarName = inVarName;
-	private String outputDir = "G:/GOM/Blocks";
+	private String outputDir = "D:/HYCOM/Blocks";
 	private DateFormat df = new SimpleDateFormat("yyyy_MM_dd");
 	private FilenameFilter filter = new FilenamePatternFilter(".*_["
 			+ inVarName + "]_.*\\.nc");
-	private long blocksize = TimeConvert.daysToMillis("60");
+	private long blocksize = TimeConvert.daysToMillis("30");
 	private Array timeArr;
 	private Array depthArr;
 	private Array latArr;
@@ -64,7 +64,7 @@ public class NetCDFDir2Block {
 	}
 
 	public void convert() {
-		NetCDFDir ncdir = new NetCDFDir(fileDir, filter,inTimeName);
+		NetCDFDir ncdir = new NetCDFDir(fileDir, filter);
 		ArrayList<Long> times = new ArrayList<Long>(ncdir.getTimes());
 		List<Long> blocks = calcBlock(times, blocksize);
 
@@ -78,7 +78,7 @@ public class NetCDFDir2Block {
 			selection = selectBetween(start_time, end_time, ncdir.getFiles());
 			String outputPath = outputDir + "/"
 					+ df.format(new Date(start_time)) + "_to_"
-					+ df.format(new Date(end_time)) + "_" + inVarName + ".nc";
+					+ df.format(new Date(end_time)) + "_tmp_" + inVarName + ".nc";
 			NetcdfFileWriteable ncf_write = makeTemplate(selection, outputPath);
 			copyContent(selection, ncf_write);
 			close(ncf_write);
@@ -143,7 +143,7 @@ public class NetCDFDir2Block {
 			}
 
 			int latidx = lat.findDimensionIndex(inVerticalDim);
-			int lonidx = lon.findDimensionIndex(inHorizontalDim);
+			int lonidx = lat.findDimensionIndex(inHorizontalDim);
 			int latlen = lat.getDimension(latidx).getLength();
 			int lonlen = lon.getDimension(lonidx).getLength();
 

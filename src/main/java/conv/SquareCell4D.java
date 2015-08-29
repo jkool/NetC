@@ -1,32 +1,42 @@
 package conv;
 
-import ucar.nc2.*;
-import ucar.ma2.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-import java.io.*;
-import java.util.*;
+import ucar.ma2.Array;
+import ucar.ma2.DataType;
+import ucar.ma2.Index;
+import ucar.ma2.InvalidRangeException;
+import ucar.nc2.Attribute;
+import ucar.nc2.Dimension;
+import ucar.nc2.NetcdfFile;
+import ucar.nc2.NetcdfFileWriter;
+import ucar.nc2.Variable;
 
 public class SquareCell4D {
 	
-	NetcdfFileWriteable ncw;
-	NetcdfFile ncf;
-	final float NODATA = 1E34f;
+	private NetcdfFile ncf;
+	private final float NODATA = 1E34f;
 	
-	String inLatName = "Latitude";
-	String inLonName = "Longitude";
-	String inDepthName = "Depth";
-	String inTimeName = "Time";
-	String inVarName = "u";
-	String outLatName = inLatName;
-	String outLonName = inLonName;
-	String outDepthName = inDepthName;
-	String outTimeName = inTimeName;
-	String outVarName = inVarName;
-	static String inFile = "G:/HI/Input/Netcdf/1993_01_01_to_1993_03_02_u.nc";
-	String outFile = "G:/HI/1993_01_01_to_1993_03_02_u.nc";
-	float lb_valid = -300f;
-	float ub_valid = 300f;
-	float minlat,maxlat,minlon,maxlon;
+	private String inLatName = "Latitude";
+	private String inLonName = "Longitude";
+	private String inLayerName = "Depth";
+	private String inTimeName = "Time";
+	private String inVarName = "salinity";
+	private String outLatName = inLatName;
+	private String outLonName = inLonName;
+	private String outLayerName = inLayerName;
+	private String outTimeName = inTimeName;
+	private String outVarName = inVarName;
+	private static String inFile = "Y:/NERP_metadata/Samples/salinity.nc";
+	private String outFile = "Y:/NERP_metadata/Samples/salinity_sq.nc";
+	private NetcdfFileWriter writer;
+	private Variable outTime,outLayer,outLat,outLon,outVar;
+	private float lb_valid = -300f;
+	private float ub_valid = 300f;
+	private float minlat,maxlat,minlon,maxlon;
 	
 	public static void main(String[] args){
 		
@@ -34,10 +44,8 @@ public class SquareCell4D {
 		try {
 			sq.square(inFile);
 		} catch (InvalidRangeException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		System.out.println("Complete.");
@@ -50,17 +58,17 @@ public class SquareCell4D {
 		
 		ncf = NetcdfFile.open(filename);
 		
-		Variable lat = ncf.findVariable(inLatName);
-		Variable lon = ncf.findVariable(inLonName);
-		Variable depth = ncf.findVariable(inDepthName);
-		Variable time = ncf.findVariable(inTimeName);
-		Variable var = ncf.findVariable(inVarName);
+		Variable inLat = ncf.findVariable(inLatName);
+		Variable inLon = ncf.findVariable(inLonName);
+		Variable inDepth = ncf.findVariable(inLayerName);
+		Variable inTime = ncf.findVariable(inTimeName);
+		Variable inVar = ncf.findVariable(inVarName);
 	
-		int dlen = depth.getShape()[0];
-		int tlen = time.getShape()[0];
+		int dlen = inDepth.getShape()[0];
+		int tlen = inTime.getShape()[0];
 		
-		Array latarr = lat.read();
-		Array lonarr = lon.read();
+		Array latarr = inLat.read();
+		Array lonarr = inLon.read();
 		
 		double[] platarr = (double[]) latarr.copyTo1DJavaArray();
 		double[] plonarr = (double[]) lonarr.copyTo1DJavaArray();
@@ -81,8 +89,8 @@ public class SquareCell4D {
 		
 		// Keeping the same number of cells, what's the mean distance?
 		
-		float latdist = (rangelat)/(float)nlat;
-		float londist = (rangelon)/(float)nlon;
+		float latdist = (rangelat)/nlat;
+		float londist = (rangelon)/nlon;
 		
 		float cellsize = (latdist+londist)/2f;
 		
@@ -110,40 +118,38 @@ public class SquareCell4D {
 		// Ideally, if Variable has lat or lon as a dim, process, otherwise
 		// write as is.
 		
-		ncw = NetcdfFileWriteable.createNew(outFile,false);
+		writer = NetcdfFileWriter.createNew(NetcdfFileWriter.Version.netcdf4, outFile, null);
 		
 		List<Dimension> dims = new ArrayList<Dimension>();
 		
-		dims.add(ncw.addDimension(outTimeName, tlen));
-		dims.add(ncw.addDimension(outDepthName, dlen));
-		dims.add(ncw.addDimension(outLatName, new_nlat));	
-		dims.add(ncw.addDimension(outLonName, new_nlon));
+		dims.add(writer.addDimension(null, outTimeName, tlen));
+		dims.add(writer.addDimension(null, outLayerName, dlen));
+		dims.add(writer.addDimension(null, outLatName, new_nlat));	
+		dims.add(writer.addDimension(null, outLonName, new_nlon));
 			
 		
-		ncw.addVariable(outTimeName, DataType.FLOAT, dims
+		outTime = writer.addVariable(null, outTimeName, DataType.FLOAT, dims
 					.subList(0, 1));
 		
-		ncw.addVariable(outDepthName, DataType.FLOAT, dims
+		outLayer = writer.addVariable(null, outLayerName, DataType.FLOAT, dims
 				.subList(1, 2));
 
-		ncw.addVariable(outLatName, DataType.FLOAT, dims
+		outLat = writer.addVariable(null, outLatName, DataType.FLOAT, dims
 				.subList(2, 3));
 		
-		ncw.addVariable(outLonName, DataType.FLOAT, dims
+		outLon = writer.addVariable(null, outLonName, DataType.FLOAT, dims
 				.subList(3, 4));		
 		
-		ncw.addVariable(outVarName, DataType.FLOAT, dims);
+		outVar = writer.addVariable(null,outVarName, DataType.FLOAT, dims);
 		
 		writeAttributeInformation();
 		
-		ncw.create();
+		writer.create();
 		
-		ncw.write(outTimeName, time.read());
-		ncw.write(outDepthName, depth.read());
-		ncw.write(outLatName, Array.factory(float.class, new int[] {new_nlat}, lataxis));
-		ncw.write(outLonName, Array.factory(float.class, new int[] {new_nlon}, lonaxis));
-		
-		
+		writer.write(outTime, inTime.read());
+		writer.write(outLayer, inDepth.read());
+		writer.write(outLat, Array.factory(float.class, new int[] {new_nlat}, lataxis));
+		writer.write(outLon, Array.factory(float.class, new int[] {new_nlon}, lonaxis));
 		
 		float ilat,ilon;
 		float ul,ll,ur,lr;
@@ -161,7 +167,7 @@ public class SquareCell4D {
 			if(t%10 == 0){System.out.println("Processing step " + t + ". " + (int) ((double)t/(double)tlen*100) + "% complete.");}
 			
 			for(int k = 0; k < dlen;k++){
-				vararr = var.read(new int[]{t,k,0,0}, new int[]{1,1,nlat,nlon});
+				vararr = inVar.read(new int[]{t,k,0,0}, new int[]{1,1,nlat,nlon});
 				vararr = vararr.reduce();
 				idx = vararr.getIndex();
 				iarr = Array.factory(float.class, new int[] {1,1,new_nlat,new_nlon});
@@ -202,12 +208,12 @@ public class SquareCell4D {
 					}
 				}
 				
-				ncw.write(outVarName, new int[] {t,k,0,0}, iarr);
+				writer.write(outVar, new int[] {t,k,0,0}, iarr);
 				
 			}
 		}
 		
-		ncw.close();
+		writer.close();
 	}
 	
 	/**
@@ -220,7 +226,7 @@ public class SquareCell4D {
 	 */
 
 	private void cloneAttributes(NetcdfFile infile, String inVarName,
-			NetcdfFileWriteable outfile, String outVarName) {
+			NetcdfFileWriter writer, Variable outVar) {
 
 		// Find the variable
 		
@@ -231,30 +237,30 @@ public class SquareCell4D {
 		List<Attribute> l = vi.getAttributes();
 		for (Attribute a : l) {
 
-			outfile.addVariableAttribute(outVarName, a);
+			writer.addVariableAttribute(outVar, a);
 		}
 	}
 	
 	private void writeAttributeInformation() {
 
-		cloneAttributes(ncf, inTimeName, ncw, outTimeName);
-		cloneAttributes(ncf, inDepthName, ncw, outDepthName);
-		ncw.addVariableAttribute(outLonName, "units", "degrees_east");
-		ncw.addVariableAttribute(outLonName, "standard_name", outLonName);
-		ncw.addVariableAttribute(outLonName, "axis", "x");
-		ncw.addVariableAttribute(outLonName, "valid_range", Array.factory(
-				float.class, new int[] { 2 }, new float[] { minlon, maxlon}));
+		cloneAttributes(ncf, inTimeName, writer, outTime);
+		cloneAttributes(ncf, inLayerName, writer, outLayer);
+		writer.addVariableAttribute(outLon, new Attribute("units", "degrees_east"));
+		writer.addVariableAttribute(outLon, new Attribute("standard_name", outLonName));
+		writer.addVariableAttribute(outLon, new Attribute("axis", "x"));
+		writer.addVariableAttribute(outLon, new Attribute("valid_range", Array.factory(
+				float.class, new int[] { 2 }, new float[] { minlon, maxlon})));
 
-		ncw.addVariableAttribute(outLatName, "units", "degrees_north");
-		ncw.addVariableAttribute(outLatName, "standard_name", outLatName);
-		ncw.addVariableAttribute(outLatName, "axis", "y");
-		ncw.addVariableAttribute(outLatName, "valid_range", Array.factory(
-				float.class, new int[] { 2 }, new float[] { minlat, maxlat }));
-		ncw.addVariableAttribute(outVarName, "units", "ms-1");
-		ncw.addVariableAttribute(outVarName, "missing_value", 1E34);
-		ncw.addVariableAttribute(outVarName, "valid_range", Array.factory(
+		writer.addVariableAttribute(outLat, new Attribute("units", "degrees_north"));
+		writer.addVariableAttribute(outLat, new Attribute("standard_name", outLatName));
+		writer.addVariableAttribute(outLat, new Attribute("axis", "y"));
+		writer.addVariableAttribute(outLat, new Attribute("valid_range", Array.factory(
+				float.class, new int[] { 2 }, new float[] { minlat, maxlat })));
+		writer.addVariableAttribute(outVar, new Attribute("units", "ms-1"));
+		writer.addVariableAttribute(outVar, new Attribute("missing_value", 1E34));
+		writer.addVariableAttribute(outVar, new Attribute("valid_range", Array.factory(
 				float.class, new int[] { 2 },
-				new float[] { lb_valid, ub_valid }));
+				new float[] { lb_valid, ub_valid })));
 	}
 		
 }

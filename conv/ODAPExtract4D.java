@@ -20,27 +20,28 @@ import ucar.nc2.dataset.NetcdfDataset;
 
 public class ODAPExtract4D {
 
-	private String conn = "http://tds.hycom.org/thredds/dodsC/glb_analysis";
+	//private String conn = "http://tds.hycom.org/thredds/dodsC/glb_analysis";
+	private String conn = " http://tds.hycom.org/thredds/dodsC/GOMl0.04/expt_31.0/2013";
 	// private String conn = "http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_90.8/2010";
-	private String outputPath = "C:\\Temp\\IND_u_2005.nc";
+	private String outputPath = "C:\\Temp\\GOM_v_2013.nc";
 	private String inLatName = "Latitude";
 	private String inLonName = "Longitude";
 	private String inLayerName = "Depth";
 	private String inTimeName = "MT";
-	private String inVarName = "u";
+	private String inVarName = "v";
 	private String outLatName = inLatName;
 	private String outLonName = inLonName;
 	private String outLayerName = "Depth";
 	private String outTimeName = "Time";
-	private String outVarName = "u";
-	private float minlon = 24;//MNL 142;//IND 30;// SEAX 90;//NZ 160;
-	private float minlat = -40;//MNL -25;// IND -35; // SEAX -20;//NZ -50;
+	private String outVarName = "v";
+	private float minlon = -98;//MNL 142;//IND 30;// SEAX 90;//NZ 160;
+	private float minlat = 18.0916f;//MNL -25;// IND -35; // SEAX -20;//NZ -50;
 	private float mindpth = 0;
-	private float mintime = 37985;//+365+365+365+365+366;// 38250;
-	private float maxlon = 106;//MNL 156;//IND 106;// SEAX 175;//NZ 185;
-	private float maxlat = 30.5f;//MNL -8;//IND 30;// SEAX 40;//NZ -30;
+	private float mintime = 37896+365+365+365+366;//+365+365+365+365+366;// 38250;
+	private float maxlon = -76.4F;//MNL 156;//IND 106;// SEAX 175;//NZ 185;
+	private float maxlat = 31.9606F;//MNL -8;//IND 30;// SEAX 40;//NZ -30;
 	private float maxdpth = 20;
-	private float maxtime = mintime + (365*1)+31+182;//
+	private float maxtime = mintime + (365*5)+31+182;//
 	private int doover = 0;// Use if you want to restart part way through.
 
 	private int minx, miny, maxx, maxy, minz, maxz, mint, maxt, full_length;
@@ -324,12 +325,14 @@ public class ODAPExtract4D {
 
 		//lna = lon.read(new int[] { Math.round((lon.getShape()[0] - 1) / 2), 0,
 		//		0, 0 }, new int[] { 1, lon.getShape()[1], 0, 0 });
-		lna = lon.read(new int[] { Math.round((lon.getShape()[0] - 1) / 2),
-		0}, new int[] { 1, lon.getShape()[1]});
-		//lta = lat.read(new int[] { 0, Math.round((lat.getShape()[1] - 1) / 2),
-		//		0, 0 }, new int[] { lat.getShape()[0], 1, 0, 0 });
-		lta = lat.read(new int[] { 0, Math.round((lat.getShape()[1] - 1) /
-		2)}, new int[] { lat.getShape()[0], 1});
+		lna = lon.read();
+		//lna = lon.read(new int[] { Math.round((lon.getShape()[0] - 1) / 2),
+		//0}, new int[] { 1, lon.getShape()[1]});
+		lta = lat.read();
+//		lta = lat.read(new int[] { 0, Math.round((lat.getShape()[1] - 1) / 2),
+//				0, 0 }, new int[] { lat.getShape()[0], 1, 0, 0 });
+		//lta = lat.read(new int[] { 0, Math.round((lat.getShape()[1] - 1) /
+		//2)}, new int[] { lat.getShape()[0], 1});
 		da = layer.read();
 		ta = time.read();
 

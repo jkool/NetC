@@ -17,7 +17,6 @@ public class TimeConvert {
 	public static final long SECS_IN_DAY = 24 * 60 * 60;
 	public static final long MILLIS_IN_DAY = 24 * 60 * 60 * 1000;
 	public static final long HYCOM_OFFSET = -2177539200000l;
-	public static final long HYCOM_OFFSET_R = 946684800000l;
 	
 	/**
 	 * Converts time measurements into milliseconds.
@@ -231,10 +230,6 @@ public class TimeConvert {
 		return daysToMillis(days)+HYCOM_OFFSET;
 	}
 	
-	public static long HYCOM_RToMillis(long days){
-		return hoursToMillis(days)+HYCOM_OFFSET_R;
-	}
-	
 	/**
 	 * Converts Java milliseconds to a HYCOM time 
 	 * @return
@@ -242,15 +237,6 @@ public class TimeConvert {
 	
 	public static double millisToHYCOM(double millis){
 		return millisToDays(millis-HYCOM_OFFSET);
-	}
-	
-	/**
-	 * Converts Java milliseconds to a HYCOM time 
-	 * @return
-	 */
-	
-	public static double millisToHYCOM_R(double millis){
-		return millisToHours(millis-HYCOM_OFFSET_R);
 	}
 
 	/** 

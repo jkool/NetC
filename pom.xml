@@ -1,0 +1,45 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>NetC</groupId>
+  <artifactId>NetC</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  	<name>NetC</name>
+	<description>Utilities for handling NetCDF velocity files</description>
+  	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.1</version>
+				<configuration>
+					<source />
+					<target />
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+  <dependencies>
+  	<dependency>
+  		<groupId>colt</groupId>
+  		<artifactId>colt</artifactId>
+  		<version>1.2.0</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>edu.ucar</groupId>
+  		<artifactId>netcdf4</artifactId>
+  	</dependency>
+  </dependencies>
+  <dependencyManagement>
+  	<dependencies>
+  		<dependency>
+  			<groupId>colt</groupId>
+  			<artifactId>colt</artifactId>
+  			<version>1.2.0</version>
+  		</dependency>
+  		<dependency>
+  			<groupId>edu.ucar</groupId>
+  			<artifactId>netcdf4</artifactId>
+  			<version>4.5.4</version>
+  		</dependency>
+  	</dependencies>
+  </dependencyManagement>
+</project>

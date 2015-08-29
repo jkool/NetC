@@ -1,9 +1,11 @@
 package conv;
 
+
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,14 +24,14 @@ import ucar.nc2.NetcdfFile;
 import ucar.nc2.NetcdfFileWriteable;
 import ucar.nc2.Variable;
 
-public class NetCDFDir2Block {
+public class NetCDFDir2Block_GOM {
 
 	private double maxFileSize = 4E9;
 	private String fileDir = "G:/GOM";
-	private String inVarName = "w_velocity";
+	private String inVarName = "u";
 	private String inHorizontalDim = "Longitude";
 	private String inVerticalDim = "Latitude";
-	private String inTimeName = "time";
+	private String inTimeName = "MT";
 	private String inDepthName = "Depth";
 	private String inLatName = "Latitude";
 	private String inLonName = "Longitude";
@@ -42,7 +44,7 @@ public class NetCDFDir2Block {
 	private DateFormat df = new SimpleDateFormat("yyyy_MM_dd");
 	private FilenameFilter filter = new FilenamePatternFilter(".*_["
 			+ inVarName + "]_.*\\.nc");
-	private long blocksize = TimeConvert.daysToMillis("60");
+	private long blocksize = TimeConvert.daysToMillis("120");
 	private Array timeArr;
 	private Array depthArr;
 	private Array latArr;
@@ -51,7 +53,37 @@ public class NetCDFDir2Block {
 	private NetcdfFile ncf_in;
 
 	public static void main(String[] args) {
-		NetCDFDir2Block ncb = new NetCDFDir2Block();
+		NetCDFDir2Block_GOM ncb = new NetCDFDir2Block_GOM();
+		
+        ncb.inVarName = args[0];
+        ncb.fileDir = args[1];
+        ncb.outputDir = args[2];
+        ncb.blocksize= TimeConvert.daysToMillis(args[3]);
+        ncb.filter = new FilenamePatternFilter(".*_"
+                + ncb.inVarName + "_.*\\.nc");
+        if (ncb.inVarName.equalsIgnoreCase("w")){
+            ncb.inVarName="w_velocity";
+        }
+        if (ncb.inVarName.equalsIgnoreCase("u")){
+            ncb.inVarName="water_u";
+        }
+        if (ncb.inVarName.equalsIgnoreCase("v")){
+            ncb.inVarName="water_v";
+        }
+        String initString = args[4] + " UTC";
+        //String initString = "1993_01_01" + " UTC";
+
+       // try {
+            // ncb.initialTime = ncb.df2.parse("2014_03_06 UTC").getTime();
+           // ncb.initialTime = ncb.df2.parse(initString).getTime();
+        //} catch (ParseException e) {
+        //    e.printStackTrace();
+        //}
+        ncb.convert(ncb.fileDir, ncb.filter, ncb.blocksize);
+        System.out.println("Complete.");
+        
+		
+		
 		ncb.convert(ncb.fileDir, ncb.filter, ncb.blocksize);
 		System.out.println("Complete.");
 	}
@@ -64,7 +96,7 @@ public class NetCDFDir2Block {
 	}
 
 	public void convert() {
-		NetCDFDir ncdir = new NetCDFDir(fileDir, filter,inTimeName);
+		NetCDFDir ncdir = new NetCDFDir(fileDir, filter,inVarName);
 		ArrayList<Long> times = new ArrayList<Long>(ncdir.getTimes());
 		List<Long> blocks = calcBlock(times, blocksize);
 
@@ -143,7 +175,7 @@ public class NetCDFDir2Block {
 			}
 
 			int latidx = lat.findDimensionIndex(inVerticalDim);
-			int lonidx = lon.findDimensionIndex(inHorizontalDim);
+			int lonidx = lat.findDimensionIndex(inHorizontalDim);
 			int latlen = lat.getDimension(latidx).getLength();
 			int lonlen = lon.getDimension(lonidx).getLength();
 

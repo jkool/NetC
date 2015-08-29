@@ -2,30 +2,38 @@ package conv;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-import ucar.ma2.*;
-import ucar.nc2.*;
+import ucar.ma2.Array;
+import ucar.ma2.DataType;
+import ucar.ma2.Index;
+import ucar.ma2.InvalidRangeException;
+import ucar.nc2.Attribute;
+import ucar.nc2.Dimension;
+import ucar.nc2.NetcdfFileWriter;
+import ucar.nc2.Variable;
 import ucar.nc2.dataset.NetcdfDataset;
 import utilities.MatrixUtilities;
 
 public class MakeW {
 
-	 public static void main(String[] args) {
-	 MakeW mw = new MakeW();
-	 mw.go();
-	 }
-	private String inputUFile = "G:/Temp/HYCOM/HI/blk/1993_01_01_to_1993_03_02_water_u.nc";
-	private String inputVFile = "G:/Temp/HYCOM/HI/blk/1993_01_01_to_1993_03_02_water_v.nc";
-	private String outputWFile = "G:/Temp/HYCOM/HI/blk/1993_01_01_to_1993_03_02_water_w.nc";
+	// public static void main(String[] args) {
+	// MakeW mw = new MakeW();
+	// mw.go();
+	// }
+	private String inputUFile = "D:/HYCOM/Blocks/2008_12_30_to_2009_01_29_tmp_u.nc";
+	private String inputVFile = "D:/HYCOM/Blocks/2008_12_30_to_2009_01_29_tmp_v.nc";
+	private String outputWFile = "D:/HYCOM/Blocks/2008_12_30_to_2009_01_29_tmp_w.nc";
 
 	private ArrayList<Dimension> dims;
-	private NetcdfFileWriteable wfile;
 	private NetcdfDataset uFile, vFile;
+	NetcdfFileWriter writer;
 	private String inLatName = "Latitude";
 	private String inLonName = "Longitude";
 	private String inLayerName = "Depth";
 	private String inTimeName = "Time";
+	private Variable var;
 	private String inUName = "u";
 	private String inVName = "v";
 	private String outLatName = inLatName;
@@ -69,8 +77,8 @@ public class MakeW {
 
 		float dx = dx(prj[1]);
 		float dy = dy(prj[0]);
-		float dudx = du / (float) dx;
-		float dvdy = dv / (float) dy;
+		float dudx = du / dx;
+		float dvdy = dv / dy;
 		float out = -(dudx + dvdy);
 		return out==-0.0f?0.0f:out;
 	}
@@ -85,7 +93,7 @@ public class MakeW {
 	 */
 
 	private void cloneAttributes(NetcdfDataset infile, String inVarName,
-			NetcdfFileWriteable outfile, String outVarName) {
+			NetcdfFileWriter writer, Variable outVar) {
 
 		// Find the variable
 
@@ -94,7 +102,7 @@ public class MakeW {
 		List<Attribute> l = vi.getAttributes();
 
 		for (Attribute a : l) {
-			outfile.addVariableAttribute(outVarName, a);
+			writer.addVariableAttribute(outVar, a);
 		}
 	}
 
@@ -196,7 +204,7 @@ public class MakeW {
 
 		// Create the output file
 
-		wfile = NetcdfFileWriteable.createNew(outputWFile, false);
+		writer = NetcdfFileWriter.createNew(NetcdfFileWriter.Version.netcdf4, outputWFile, null);
 
 		// Construct the data set dimensions - Time, Depth, Latitude and
 		// Longitude (in order)
@@ -211,13 +219,13 @@ public class MakeW {
 		int vLatLength = vFile.findVariable(inLatName).getShape()[0];
 		int vLonLength = vFile.findVariable(inLonName).getShape()[0];
 
-		Dimension timeDim = wfile.addDimension(outTimeName,
+		Dimension timeDim = writer.addDimension(null, outTimeName,
 				Math.min(uTimeLength, vTimeLength));
-		Dimension layerDim = wfile.addDimension(outLayerName,
+		Dimension layerDim = writer.addDimension(null, outLayerName,
 				Math.min(uLayerLength, vLayerLength));
-		Dimension latDim = wfile.addDimension(outLatName,
+		Dimension latDim = writer.addDimension(null, outLatName,
 				Math.min(uLatLength, vLatLength));
-		Dimension lonDim = wfile.addDimension(outLonName,
+		Dimension lonDim = writer.addDimension(null, outLonName,
 				Math.min(uLonLength, vLonLength));
 
 		// Add to a list - this becomes the coordinate system for the output
@@ -230,35 +238,35 @@ public class MakeW {
 
 		// Create variables in the output file
 
-		wfile.addVariable(outTimeName, DataType.DOUBLE,
-				new Dimension[] { timeDim });
-		wfile.addVariable(outLayerName, DataType.DOUBLE,
-				new Dimension[] { layerDim });
-		wfile.addVariable(outLatName, DataType.DOUBLE,
-				new Dimension[] { latDim });
-		wfile.addVariable(outLonName, DataType.DOUBLE,
-				new Dimension[] { lonDim });
+		Variable time = writer.addVariable(null, outTimeName, DataType.DOUBLE,
+				Arrays.asList(timeDim));
+		Variable layer = writer.addVariable(null, outLayerName, DataType.DOUBLE,
+				Arrays.asList(layerDim));
+		Variable lat = writer.addVariable(null, outLatName, DataType.DOUBLE,
+				Arrays.asList(latDim));
+		Variable lon = writer.addVariable(null, outLonName, DataType.DOUBLE,
+				Arrays.asList(lonDim));
 
 		// outfile.setLargeFile(true);
-		wfile.addVariable(outVarName, DataType.FLOAT, dims);
+		var = writer.addVariable(null, outVarName, DataType.FLOAT, dims);
 
 		// Add attribute information (cloned from source)
 
-		cloneAttributes(uFile, inTimeName, wfile, outTimeName);
-		cloneAttributes(uFile, inLayerName, wfile, outLayerName);
-		cloneAttributes(uFile, inLatName, wfile, outLatName);
-		cloneAttributes(uFile, inLonName, wfile, outLonName);
+		cloneAttributes(uFile, inTimeName, writer, time);
+		cloneAttributes(uFile, inLayerName, writer, layer);
+		cloneAttributes(uFile, inLatName, writer, lat);
+		cloneAttributes(uFile, inLonName, writer, lon);
 
 		// Finalizes the structure of the output file, making the changes real.
 
-		wfile.create();
+		writer.create();
 
 		// Write the static information for 1D axes.
 
-		wfile.write(outTimeName, uFile.findVariable(inTimeName).read());
-		wfile.write(outLayerName, uFile.findVariable(inLayerName).read());
-		wfile.write(outLatName, uFile.findVariable(inLatName).read());
-		wfile.write(outLonName, uFile.findVariable(inLonName).read());
+		writer.write(time, uFile.findVariable(inTimeName).read());
+		writer.write(layer, uFile.findVariable(inLayerName).read());
+		writer.write(lat, uFile.findVariable(inLatName).read());
+		writer.write(lon, uFile.findVariable(inLonName).read());
 
 		Variable u = uFile.findVariable(inUName);
 		Variable v = vFile.findVariable(inVName);
@@ -291,14 +299,14 @@ public class MakeW {
 					Array warra = Array.factory(java.lang.Float.class,
 							new int[] { 1, uLayerLength, 1, 1 }, w_arr);
 
-					wfile.write(outVarName, new int[] { t, 0, i, j }, warra);
+					writer.write(var, new int[] { t, 0, i, j }, warra);
 				}
 				System.out.println("\tRow " + i + " complete.");
 			}
 			System.out.printf("Time %d of " + (u.getShape(0))
 					+ " is complete.\n", t + 1);
 		}
-		return new NetcdfDataset(wfile);
+		return new NetcdfDataset(writer.getNetcdfFile());
 	}
 
 	
@@ -382,13 +390,13 @@ public class MakeW {
 		try {
 			for (int t = 0; t < shape[0]; t++) {
 				for (int j = 0; j < shape[3]; j++) {
-					wfile.write(outVarName, new int[] { t, 0, 0, j }, nana);
-					wfile.write(outVarName, new int[] { t, 0, shape[2] - 1, j },
+					writer.write(var, new int[] { t, 0, 0, j }, nana);
+					writer.write(var, new int[] { t, 0, shape[2] - 1, j },
 							nana);
 				}
 				for (int i = 1; i < shape[2] - 1; i++) {
-					wfile.write(outVarName, new int[] { t, 0, i, 0 }, nana);
-					wfile.write(outVarName, new int[] { t, 0, i, shape[3] - 1 },
+					writer.write(var, new int[] { t, 0, i, 0 }, nana);
+					writer.write(var, new int[] { t, 0, i, shape[3] - 1 },
 							nana);
 				}
 			}
